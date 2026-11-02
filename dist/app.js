@@ -1,6 +1,23 @@
 const app=document.querySelector('#app');
 function shell(content){
- return `<div class="field-shell"><header class="quiet-header"><a href="#home" class="quiet-brand">Global Conflicts</a></header><main>${content}</main><footer><span>Global Conflicts</span><a href="/account.html">Your account</a><a href="https://discord.globalconflicts.net" target="_blank" rel="noopener">Discord ↗</a></footer></div>`;
+ return `<div class="field-shell"><header class="quiet-header"><a href="#home" class="quiet-brand">Global Conflicts</a><a class="header-account" id="headerAccount" href="/account.html" aria-label="Sign in with Discord"><img src="discord.svg" alt="" width="20" height="20"><span>Sign in<span class="sign-in-provider"> with Discord</span></span></a></header><main>${content}</main><footer><span>Global Conflicts</span><a href="/account.html">Your account</a><a href="https://discord.globalconflicts.net" target="_blank" rel="noopener">Discord ↗</a></footer></div>`;
+}
+async function updateAccountLink(){
+ const link=document.querySelector('#headerAccount');
+ if(!link)return;
+ link.href='/account.html';
+ link.setAttribute('aria-label','Sign in with Discord');
+ link.querySelector('span').innerHTML='Sign in<span class="sign-in-provider"> with Discord</span>';
+ try{
+  const response=await fetch('/api/me',{cache:'no-store'});
+  if(!link?.isConnected)return;
+  if(response.ok){link.querySelector('span').textContent='Your account';link.setAttribute('aria-label','Your account');return;}
+  if(response.status!==401)return;
+  const status=await fetch('/api/auth/status',{cache:'no-store'});
+  if(!status.ok)return;
+  const config=await status.json();
+  if(link.isConnected&&config.discordEnabled&&config.https)link.href='/auth/discord';
+ }catch{/* The account page explains setup or temporary availability. */}
 }
 let youtubeApiPromise;
 let youtubePlayers=[];
@@ -32,6 +49,7 @@ function render(){
  document.title='Global Conflicts — One-life Arma Reforger';
  app.innerHTML=shell(home());
  wireLanding();
+ updateAccountLink();
  updateSessionTimes();
  window.scrollTo(0,0);
 }
@@ -46,3 +64,4 @@ window.addEventListener('hashchange',render);render();
 
 setInterval(updateSessionTimes, 60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateSessionTimes()});
+window.addEventListener('pageshow',event=>{if(event.persisted)updateAccountLink()});
