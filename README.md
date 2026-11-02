@@ -18,6 +18,14 @@ The website works without a database; dependent APIs report unavailable.
 The introduction video never starts automatically, including after revealing
 the embed. Press YouTube's play button to start it; initial volume is 25%.
 
+Sessions are anchored to Saturday/Sunday at 21:00 Europe/Berlin (Central
+European civil time), based on the community's normal 3 p.m. Eastern start and
+temporary 4 p.m. start during the Europe/US clock-change gap. This is 19:00 UTC
+in European summer and 20:00 UTC in winter. `dist/schedule.js` converts the next
+sessions to the visitor's timezone, including local weekday changes, and falls
+back to UTC when no usable local timezone is detected. Run
+`node tests/schedule.test.cjs` to check DST boundaries and date rollover.
+
 ## Current capabilities
 
 | Component | Implemented starting point |

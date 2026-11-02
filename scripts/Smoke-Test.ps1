@@ -32,7 +32,7 @@ try {
                 ($health.Content.ReadAsStringAsync().Result | ConvertFrom-Json).status -ne 'ok') {
                 throw 'Health check failed.'
             }
-            foreach ($relative in @('index.html','app.js','styles.css','squad.jpg','intro-thumbnail.jpg','discord.svg','fonts/Lordcorps.ttf')) {
+            foreach ($relative in @('index.html','app.js','schedule.js','styles.css','squad.jpg','intro-thumbnail.jpg','discord.svg','fonts/Lordcorps.ttf')) {
                 $urlPath = if ($relative -eq 'index.html') { '' } else { $relative }
                 $response = $client.GetAsync("$base/$urlPath").Result
                 if ([int]$response.StatusCode -ne 200) { throw "Asset failed: $relative" }

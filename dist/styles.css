@@ -40,7 +40,7 @@ footer a{text-decoration:underline;text-underline-offset:4px}
 .story-video>a{display:inline-block;margin-top:18px;color:var(--muted);font-size:12px;text-decoration:underline;text-underline-offset:5px}
 .field-join-section{width:var(--field-width);padding:64px 0;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:12%;max-width:1440px;margin:auto}
 .large-session-time{font-size:19px;line-height:1.6;margin:26px 0 0;color:var(--ink)}
-.large-session-time span{color:var(--accent)}
+.large-session-time [data-session-time]{color:var(--accent)}
 .join-copy p{font-size:16px;line-height:1.7;max-width:430px;margin-bottom:20px}
 .join-copy .btn{margin-top:10px}
 .field footer{font-family:'DM Sans',sans-serif;font-size:12px;width:var(--field-width);padding:38px 0;border-top:0;margin:auto;max-width:1440px;gap:25px}
