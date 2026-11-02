@@ -1,3 +1,16 @@
+# Shared Lobby2 contracts
+
+Current dependency: `Lobby2.Contracts.1.0.0.nupkg`.
+
+Source commit: `198549254344b4e9d7ebcc097315d6c588aade6d`.
+SHA-256: `0ba0bb15fba2cc6abcb36e29ada03279604a16fdfe9fbbcf7d749b404afa3b82`.
+
+Source: https://github.com/burn0ut7/Lobby2/tree/198549254344b4e9d7ebcc097315d6c588aade6d/integrations/Contracts
+
+This expands the shared package to statistics, session events and mission history, preserving the existing telemetry codec. Build with `dotnet pack integrations/Contracts -c Release` from the committed revision. Consumer dependency and locks must move together. Never overwrite a released version. No player captures are packaged.
+
+The previous telemetry-only package below is retained as an immutable historical artifact and is no longer referenced by the website.
+
 # Shared Lobby2 contract package
 
 `Lobby2.TelemetryContracts.1.0.1.nupkg` is built from the canonical source in

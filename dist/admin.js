@@ -17,7 +17,7 @@ async function refresh(){
   const batches=document.querySelector('#batches');batches.replaceChildren();
   for(const item of data.recent){
    const row=document.createElement('tr');cell(row,new Date(item.receivedAt).toLocaleString());cell(row,`${item.stream} / ${item.recordingId}`);cell(row,item.revision);cell(row,item.error?`${item.status}: ${item.error}`:item.status);
-   const action=cell(row,'');if(item.stream==='telemetry'){const button=document.createElement('button');button.textContent='Open';button.addEventListener('click',()=>openRecording(item));action.append(button);}else action.textContent='Archive only';batches.append(row);
+   const action=cell(row,'');if(item.stream==='telemetry'){const button=document.createElement('button');button.textContent='Open';button.addEventListener('click',()=>openRecording(item));action.append(button);}else action.textContent=item.status==='projected'?'Mission API available':'Awaiting processing';batches.append(row);
   }
   status.textContent=data.recent.length?'Updated. No data is changed by this page.':'No batches have been received by this website database yet.';
  }catch(error){status.textContent=error.message;document.querySelector('#streams').replaceChildren();document.querySelector('#batches').replaceChildren();document.querySelector('#recording').hidden=true;}

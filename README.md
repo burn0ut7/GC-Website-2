@@ -138,20 +138,14 @@ supports one sending server per configured endpoint deployment; multi-server
 credential rotation will be a later change. Keep the archive directory controlled
 by the service account and do not use junctions/symlinks into public directories.
 
-Bodies are limited to 1 MiB and two concurrent requests. A successful receipt is
+Bodies are limited to 1 MiB for telemetry and 64 MiB for statistics/session/history, with two concurrent requests. A successful receipt is
 HTTP 202 with `accepted` (durable receipt, not a processing result). Same key/content is safely repeatable;
 changed content at the same revision returns 409. The archive is flushed before
 the database receipt. Interrupted writes can leave orphan files; they are not
 acknowledged as imported. No public archive-download route exists.
 
-The optional worker now validates and indexes telemetry with the shared Lobby2
-contract package. Set `Telemetry__Enabled=true` and the private archive path on
-the worker after migrations and runtime grants. See [the telemetry proof](docs/telemetry-proof.md)
-for statuses, private summary/window endpoints, limits and real-capture evidence.
-It does not reconstruct playback state, consume game-profile files, remove ready
-markers or return player history. Stats/session/history streams remain unprocessed.
-Do not connect a live agent that deletes originals yet. Overall archive quotas,
-retention and orphan reconciliation remain prerequisites for sustained ingestion.
+The optional worker now delivers and projects all four streams. See [the mission pipeline](docs/mission-pipeline.md) for configuration, joined read APIs, proof and production cutover limits. The existing player-history mailbox is not replaced in this slice. See [the telemetry proof](docs/telemetry-proof.md) for the earlier playback-record foundation.
+
 Production intake requires HTTPS; HTTP is permitted only in the explicit
 Development environment for local integration tests.
 

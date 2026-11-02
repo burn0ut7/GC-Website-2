@@ -20,7 +20,7 @@ internal static class ApiChecks
         start.Environment["Ingest__Enabled"] = "true";
         start.Environment["Ingest__ApiKey"] = key;
         start.Environment["Ingest__ArchivePath"] = archive;
-        start.Environment["Ingest__ServerId"] = Guid.NewGuid().ToString();
+        start.Environment["Ingest__ServerId"] = Environment.GetEnvironmentVariable("GC_TEST_SERVER_ID") ?? Guid.NewGuid().ToString();
         var migrationStart = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
         migrationStart.ArgumentList.Add(web); migrationStart.ArgumentList.Add("--migrate");
         migrationStart.Environment["ConnectionStrings__Gc"] = connection;
@@ -68,7 +68,10 @@ internal static class ApiChecks
             await Expect(client.GetAsync("/appsettings.json"), HttpStatusCode.NotFound);
             var workerPath = Environment.GetEnvironmentVariable("GC_TEST_WORKER_DLL");
             if (!string.IsNullOrWhiteSpace(workerPath))
+            {
                 await TelemetryChecks.Run(client, connection, archive, Guid.Parse(start.Environment["Ingest__ServerId"]!), workerPath);
+                await PipelineChecks.Run(client, connection, archive, Guid.Parse(start.Environment["Ingest__ServerId"]!), workerPath);
+            }
             Console.WriteLine("PASS: API readiness, anonymous auth boundaries, intake authentication, duplicate/conflict, size limits and private files");
         }
         finally

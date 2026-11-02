@@ -10,6 +10,7 @@ public static class AdminData
         app.MapGet("/admin", () => Results.File(Path.Combine(AppContext.BaseDirectory, "PrivatePages", "admin.html"), "text/html"))
             .RequireAuthorization("administrator");
         var routes = app.MapGroup("/api/admin").RequireAuthorization("administrator").RequireRateLimiting("intake");
+        MissionRoutes.Map(routes.MapGroup("/missions/{server:guid}"),context=>Guid.Parse((string)context.Request.RouteValues["server"]!));
         routes.MapGet("/data", async (HttpContext context) =>
         {
             var database = context.RequestServices.GetService<NpgsqlDataSource>();
@@ -36,7 +37,7 @@ public static class AdminData
                         status = reader.GetString(6), error = reader.IsDBNull(7) ? null : reader.GetString(7) });
             }
             return Results.Ok(new { streams, recent, recentLimit = 50,
-                scope = "Website intake database only. Existing Lobby2 importer databases are separate. Statistics, session and history payloads are archived but not yet projected here." });
+                scope = "Website intake database only. Existing Lobby2 importer databases are separate. Processing status applies independently to each stream; missing data is not confirmed zero." });
         });
         routes.MapGet("/recordings/{server:guid}/{recording:guid}", async (HttpContext context, Guid server, Guid recording) =>
         {

@@ -11,7 +11,7 @@ public static class Intake
     public static async Task<bool> Receive(NpgsqlDataSource database, string archiveRoot, Guid server, string stream,
         Guid recording, int revision, byte[] bytes, CancellationToken token)
     {
-        if (!ValidStream(stream) || revision < 0 || bytes.Length is 0 or > MaximumBytes)
+        if (!ValidStream(stream) || server == Guid.Empty || recording == Guid.Empty || revision < 0 || bytes.Length == 0 || bytes.Length > LobbyBatch.MaximumBytes(stream))
             throw new ArgumentException("Invalid batch envelope.");
         var hash = Convert.ToHexString(SHA256.HashData(bytes));
         await using (var prior = database.CreateCommand("SELECT sha256 FROM gc.ingest_receipts WHERE server_id=$1 AND stream=$2 AND recording_id=$3 AND revision=$4"))

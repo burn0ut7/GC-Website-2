@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using GC.Infrastructure;
 using Npgsql;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace GC.Web;
 
@@ -38,19 +39,28 @@ public static class Integrations
             if (!Intake.ValidStream(stream) || revision < 0 || recording == Guid.Empty) return Results.BadRequest();
             var database = context.RequestServices.GetService<NpgsqlDataSource>();
             if (database is null) return Results.StatusCode(503);
-            if (context.Request.ContentLength > Intake.MaximumBytes) return Results.StatusCode(413);
+            var maximum = LobbyBatch.MaximumBytes(stream);
+            var sizeLimit = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
+            // This authenticated route enforces its stream-specific bound below, including chunked bodies.
+            // Avoid Kestrel aborting a known oversized body while draining our explicit 413 response.
+            if (sizeLimit is { IsReadOnly: false }) sizeLimit.MaxRequestBodySize = null;
+            if (context.Request.ContentLength > maximum) return Results.StatusCode(413);
             using var memory = new MemoryStream();
             var buffer = new byte[16384];
             int length;
             while ((length = await context.Request.Body.ReadAsync(buffer, context.RequestAborted)) > 0)
             {
-                if (memory.Length + length > Intake.MaximumBytes) return Results.StatusCode(413);
+                if (memory.Length + length > maximum) return Results.StatusCode(413);
                 await memory.WriteAsync(buffer.AsMemory(0, length), context.RequestAborted);
             }
             if (memory.Length == 0) return Results.BadRequest();
             var accepted = await Intake.Receive(database, archive!, server, stream, recording, revision, memory.ToArray(), context.RequestAborted);
             return accepted ? Results.Json(new { status = "accepted" }, statusCode: 202) : Results.Conflict(new { error = "revision_conflict" });
         }).RequireRateLimiting("intake");
+        var missions=app.MapGroup("/api/v1/missions").RequireRateLimiting("intake");
+        missions.AddEndpointFilter((context,next)=>AuthorizeServer(context.HttpContext) is {} denial
+            ? ValueTask.FromResult<object?>(denial):next(context));
+        MissionRoutes.Map(missions,_=>server);
         // Proof APIs use the same server-scoped machine credential, not blanket member access.
         app.MapGet("/api/v1/recordings/{recording:guid}", async (HttpContext context, Guid recording) =>
         {
