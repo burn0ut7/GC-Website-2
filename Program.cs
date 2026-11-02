@@ -11,6 +11,10 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     WebRootPath = Path.Combine(AppContext.BaseDirectory, "dist")
 });
 
+// Optional private local configuration. Environment/command-line settings still win.
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables().AddCommandLine(args);
+
 var connectionString = builder.Configuration.GetConnectionString("Gc");
 if (args.Contains("--migrate", StringComparer.Ordinal))
 {

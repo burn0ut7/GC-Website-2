@@ -9,6 +9,8 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);artifacts/**;.local/**;src/**;tests/**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
+    <Content Update="appsettings.Local.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
+    <Content Update="appsettings.Local.example.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
     <ProjectReference Include="src/GC.Infrastructure/GC.Infrastructure.csproj" />
     <Content Include="dist/**/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="PrivatePages/**/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
