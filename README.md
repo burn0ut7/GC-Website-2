@@ -7,13 +7,13 @@ Double-click `Launch.cmd`. Python 3 is required. Keep its window open while view
 The preview binds only to 127.0.0.1 and opens the home page automatically.
 
 ## Editing
-- `dist/app.js`: page content, navigation, and playback demo.
+- `dist/app.js`: landing-page content and introduction video.
 - `dist/styles.css`: styling and responsive layout.
 - `dist/`: images, font assets, and the site entry point.
 
-Pages: `#home`, `#media`, `#operations`, `#join`, and `#playback`.
-Older links with a design prefix open the corresponding page in this site.
-The playback player uses simulated data; video embeds require internet access.
+Only the landing page (`#home`) is active. Old page links return to the landing page.
+The introduction video starts at 25% volume and requires internet access.
+Additional pages and real telemetry playback will be built on the backend foundation later.
 
 `.openai/hosting.json` retains the existing hosted site's identity.
 Font license information is preserved in `dist/fonts/`.
