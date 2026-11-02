@@ -68,5 +68,6 @@ footer a{text-decoration:underline;text-underline-offset:4px}
 .field footer{padding:30px 0;font-size:11px;flex-wrap:wrap;flex-direction:row;line-height:1.6}
 }
 
+.field .discord-button{gap:40px;justify-content:flex-start;width:max-content;line-height:20px}
 .discord-icon{display:block;flex:none;width:20px;height:20px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
