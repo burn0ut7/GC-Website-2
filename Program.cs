@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.HttpLogging;
 using GC.Infrastructure;
 using Npgsql;
+using GC.Web;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -20,6 +22,13 @@ if (args.Contains("--migrate", StringComparer.Ordinal))
 }
 if (!string.IsNullOrWhiteSpace(connectionString))
     builder.Services.AddSingleton(_ => Database.Open(connectionString));
+builder.Services.AddProblemDetails();
+Identity.Configure(builder);
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.AddConcurrencyLimiter("intake", limiter => { limiter.PermitLimit = 2; limiter.QueueLimit = 0; });
+});
 
 builder.Services.AddHttpLogging(options =>
 {
@@ -31,9 +40,15 @@ builder.Services.AddHttpLogging(options =>
 });
 
 var app = builder.Build();
+app.UseExceptionHandler();
 app.UseHttpLogging();
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseDefaultFiles();
 app.UseStaticFiles();
+Identity.Map(app);
+Integrations.Map(app);
 
 // Liveness only: database and external services are not part of this slice.
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));

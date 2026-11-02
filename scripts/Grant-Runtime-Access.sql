@@ -1,0 +1,10 @@
+-- Run after migrations as the database/schema owner in the GC database.
+-- Create gc_web and gc_worker LOGIN roles with independently managed passwords first.
+-- Neither runtime account owns tables or gets permission to run migrations.
+GRANT USAGE ON SCHEMA gc TO gc_web, gc_worker;
+GRANT SELECT ON gc.schema_migrations TO gc_web, gc_worker;
+GRANT SELECT, INSERT, UPDATE ON gc.users, gc.external_identities TO gc_web;
+GRANT SELECT, INSERT ON gc.ingest_receipts TO gc_web;
+GRANT SELECT, INSERT, UPDATE ON gc.worker_heartbeat TO gc_worker;
+GRANT USAGE ON SCHEMA gc_jobs TO gc_worker;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA gc_jobs TO gc_worker;

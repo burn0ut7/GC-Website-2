@@ -1,5 +1,6 @@
 using GC.Infrastructure;
 using Npgsql;
+using System.Diagnostics;
 
 var adminConnection = Environment.GetEnvironmentVariable("GC_TEST_ADMIN_CONNECTION")
     ?? throw new InvalidOperationException("Set GC_TEST_ADMIN_CONNECTION to a local PostgreSQL test administrator. Tests create and drop only a random gc_test_* database.");
@@ -18,9 +19,49 @@ try
     Check(!await Database.IsReady(database, default), "Readiness detects changed migrations");
     try { await Database.Migrate(database); throw new Exception("Changed migration accepted"); }
     catch (InvalidOperationException) { Console.WriteLine("PASS: Changed migrations rejected"); }
-    await using (var reset = database.CreateCommand("DROP SCHEMA gc CASCADE")) await reset.ExecuteNonQueryAsync();
+    await using (var reset = database.CreateCommand("DROP SCHEMA gc CASCADE; DROP SCHEMA IF EXISTS gc_jobs CASCADE")) await reset.ExecuteNonQueryAsync();
     await Database.Migrate(database);
     Check(await Database.IsReady(database, default), "Fresh schema migration succeeds");
+    var signIns = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => Accounts.SignInDiscord(database, "123456789012345678", "Test member", default)));
+    Check(signIns.Distinct().Count() == 1, "Concurrent Discord sign-ins resolve to one GC account");
+    var web = Environment.GetEnvironmentVariable("GC_TEST_WEB_DLL");
+    if (!string.IsNullOrWhiteSpace(web)) await ApiChecks.Run(web, settings.ConnectionString);
+    var worker = Environment.GetEnvironmentVariable("GC_TEST_WORKER_DLL");
+    if (!string.IsNullOrWhiteSpace(worker))
+    {
+        DateTime lastSeen = DateTime.MinValue;
+        for (var run = 0; run < 2; run++)
+        {
+            var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+            start.ArgumentList.Add(worker);
+            start.Environment["ConnectionStrings__Gc"] = settings.ConnectionString;
+            using var process = Process.Start(start)!;
+            var stdout = process.StandardOutput.ReadToEndAsync();
+            var stderr = process.StandardError.ReadToEndAsync();
+            try
+            {
+                var deadline = DateTime.UtcNow.AddSeconds(75);
+                var advanced = false;
+                while (DateTime.UtcNow < deadline)
+                {
+                    if (process.HasExited) throw new Exception("Worker exited: " + await stderr + await stdout);
+                    await using var heartbeat = database.CreateCommand("SELECT last_seen_at FROM gc.worker_heartbeat WHERE name='scheduler'");
+                    var result = await heartbeat.ExecuteScalarAsync();
+                    if (result is DateTime seen && seen > lastSeen) { lastSeen = seen; advanced = true; break; }
+                    await Task.Delay(250);
+                }
+                Check(advanced, "Persistent worker executes after start/restart " + (run + 1));
+            }
+            finally
+            {
+                if (!process.HasExited) process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync();
+                await Task.WhenAll(stdout, stderr);
+            }
+        }
+        await using var jobs = database.CreateCommand("SELECT count(*) FROM gc_jobs.qrtz_job_details");
+        Check((long)(await jobs.ExecuteScalarAsync())! == 1, "Worker restart does not duplicate scheduled jobs");
+    }
     Console.WriteLine("PASS: Database foundation checks complete.");
 }
 finally

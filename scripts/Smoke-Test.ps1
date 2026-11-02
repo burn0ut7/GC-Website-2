@@ -49,6 +49,11 @@ try {
                 $response.Dispose()
             }
             $health.Dispose()
+            foreach ($check in @(@('/api/ready',503), @('/auth/discord',503), @('/api/me',401))) {
+                $response = $client.GetAsync("$base$($check[0])").Result
+                if ([int]$response.StatusCode -ne $check[1]) { throw "Unexpected status: $($check[0])" }
+                $response.Dispose()
+            }
             Write-Output "Run ${run}: health, asset integrity and private-file isolation passed."
         }
         finally {
