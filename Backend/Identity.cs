@@ -28,6 +28,13 @@ public static class Identity
         builder.Services.AddAuthorization(options => options.AddPolicy("administrator", policy =>
             policy.RequireAuthenticatedUser().AddRequirements(new AdministratorRequirement())));
         builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, AdministratorHandler>();
+        builder.Services.AddSingleton<DiscordDeveloperAccess>();
+        builder.Services.AddHttpClient("discord-roles", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(3);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("DiscordBot (https://globalconflicts.net, 1.0)");
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
         builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
         if (!builder.Configuration.GetValue<bool>("Discord:Enabled")) return;
         var clientId = Required(builder.Configuration, "Discord:ClientId");

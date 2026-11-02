@@ -91,8 +91,8 @@ has been performed. Retention and maintenance jobs come in later small changes.
 
 See [Discord identity, old-site review and local setup](docs/discord-identity.md).
 `/account.html` shows your linked Discord identity; `/admin` and `/api/admin/*`
-require an explicit approved Discord ID in `Auth:AdminDiscordIds`.
-This grant is checked server-side on every request, not cached in the session.
+require the configured Developer role in the community Discord server.
+Membership is checked server-side on every request, not cached in the session.
 The inspector reads only this website's database, not the older Lobby2 proof store.
 
 Environment settings required to enable it:
@@ -100,6 +100,7 @@ Environment settings required to enable it:
 - `Discord__Enabled=true`
 - `Discord__ClientId` and `Discord__ClientSecret`
 - `Auth__KeysPath`: private persistent directory outside `dist`
+- For private inspector access: `Discord__GuildId`, `Discord__DeveloperRoleId`, and server-only `Discord__BotToken`; no individual user allowlist.
 - `ConnectionStrings__Gc`
 - HTTPS listener/reverse proxy and matching `AllowedHosts`
 

@@ -27,11 +27,15 @@ internal static class IdentityChecks
         {
             ["Discord:Enabled"] = "true", ["Discord:ClientId"] = "test-client", ["Discord:ClientSecret"] = "test-secret",
             ["ConnectionStrings:Gc"] = "configured-in-test", ["Auth:KeysPath"] = keys,
-            ["Auth:AdminDiscordIds:0"] = "222222222222222222"
+            ["Discord:GuildId"] = "444444444444444444", ["Discord:DeveloperRoleId"] = "555555555555555555",
+            ["Discord:BotToken"] = "test-bot-token",
+            // Legacy user grants must no longer confer any permission.
+            ["Auth:AdminDiscordIds:0"] = "333333333333333333"
         });
         builder.Services.AddSingleton(database);
         Identity.Configure(builder);
         var provider = new DiscordStub();
+        builder.Services.AddHttpClient("discord-roles").ConfigurePrimaryHttpMessageHandler(() => provider);
         builder.Services.PostConfigure<OAuthOptions>("discord", options => options.Backchannel = new HttpClient(provider));
         builder.Services.AddRateLimiter(options => options.AddConcurrencyLimiter("intake", limit => limit.PermitLimit = 2));
         await using var app = builder.Build();
@@ -51,6 +55,7 @@ internal static class IdentityChecks
             client.DefaultRequestHeaders.Add("Cookie", member);
             await Check(client, "/api/admin/data", 403);
             await Check(client, "/admin", 403);
+            await Check(client, $"/api/admin/missions/{Guid.NewGuid()}", 403);
             await Check(client, $"/api/admin/recordings/{Guid.NewGuid()}/{Guid.NewGuid()}/records?fromMs=0&untilMs=1000", 403);
             client.DefaultRequestHeaders.Remove("Cookie");
             var administrator = await Login(client, "admin");
@@ -62,9 +67,35 @@ internal static class IdentityChecks
             await Check(client, "/api/admin/data", 200);
             await Check(client, "/admin", 200);
             await Check(client, $"/api/admin/recordings/{Guid.NewGuid()}/{Guid.NewGuid()}", 404);
-            builder.Configuration["Auth:AdminDiscordIds:0"] = "";
+            provider.Developer = false;
             await Check(client, "/api/admin/data", 403);
-            builder.Configuration["Auth:AdminDiscordIds:0"] = "222222222222222222";
+            provider.Developer = true;
+            await Check(client, "/api/admin/data", 200);
+            foreach(var failure in new[]{HttpStatusCode.NotFound,HttpStatusCode.Forbidden,HttpStatusCode.ServiceUnavailable})
+            {
+                provider.RoleStatus=failure;
+                await Check(client, "/api/admin/data", 403);
+                await Check(client, "/api/me", 200); // Provider trouble must not break ordinary login.
+            }
+            provider.RoleStatus=HttpStatusCode.OK;
+            provider.MalformedRoles=true;
+            await Check(client, "/api/admin/data", 403);
+            provider.MalformedRoles=false;
+            provider.WrongIdentity=true;
+            await Check(client, "/api/admin/data", 403);
+            provider.WrongIdentity=false;
+            provider.Unavailable=true;
+            await Check(client,"/api/admin/data",403);
+            provider.Unavailable=false;
+            provider.Oversized=true;
+            await Check(client,"/api/admin/data",403);
+            provider.Oversized=false;
+            builder.Configuration["Discord:DeveloperRoleId"]="666666666666666666";
+            await Check(client, "/api/admin/data", 403);
+            builder.Configuration["Discord:DeveloperRoleId"]="555555555555555555";
+            builder.Configuration["Discord:BotToken"]="";
+            await Check(client, "/api/admin/data", 403);
+            builder.Configuration["Discord:BotToken"]="test-bot-token";
             await using (var unlink = database.CreateCommand("DELETE FROM gc.external_identities WHERE user_id=$1"))
             { unlink.Parameters.AddWithValue(account); await unlink.ExecuteNonQueryAsync(); }
             await Check(client, "/api/admin/data", 403);
@@ -93,7 +124,15 @@ internal static class IdentityChecks
             using var secondMe = JsonDocument.Parse(await client.GetStringAsync("/api/me"));
             if (firstMe.RootElement.GetProperty("id").GetGuid() != secondMe.RootElement.GetProperty("id").GetGuid() ||
                 secondMe.RootElement.GetProperty("name").GetString() != "Renamed member") throw new Exception("Discord re-login identity drift");
-            Console.WriteLine("PASS: OAuth code flow, state rejection, secure session, stable account linking, admin/member boundaries, permission removal and CSRF logout");
+            provider.MemberDeveloper=true;
+            await Check(client,"/api/admin/data",200); // Role grant works for another account without a website allowlist.
+            provider.RoleStatus=HttpStatusCode.TooManyRequests;
+            await Check(client,"/api/admin/data",403);
+            var calls=provider.RoleCalls;
+            provider.RoleStatus=HttpStatusCode.OK;
+            await Check(client,"/api/admin/data",403);
+            if(provider.RoleCalls!=calls)throw new Exception("Discord Retry-After not respected");
+            Console.WriteLine("PASS: OAuth code flow, secure session, stable identity, Developer role grants/removal, legacy allowlist ignored, provider failure/rate-limit denial, ordinary sign-in isolation and CSRF logout");
         }
         finally { await app.StopAsync(); if (Directory.Exists(keys)) Directory.Delete(keys, true); }
     }
@@ -126,8 +165,28 @@ internal static class IdentityChecks
     private sealed class DiscordStub : HttpMessageHandler
     {
         public string Name { get; set; } = "Test member";
+        public bool Developer { get; set; } = true;
+        public bool MemberDeveloper { get; set; }
+        public bool MalformedRoles { get; set; }
+        public bool WrongIdentity { get; set; }
+        public bool Unavailable { get; set; }
+        public bool Oversized { get; set; }
+        public HttpStatusCode RoleStatus { get; set; } = HttpStatusCode.OK;
+        public int RoleCalls { get; private set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
+            if(request.RequestUri?.AbsolutePath.StartsWith("/api/v10/guilds/",StringComparison.Ordinal)==true)
+            {
+                RoleCalls++;
+                if(Unavailable)throw new HttpRequestException("Simulated provider outage");
+                if(Oversized)return Json(new{extra=new string('x',128*1024)});
+                if(!request.RequestUri.AbsolutePath.StartsWith("/api/v10/guilds/444444444444444444/members/",StringComparison.Ordinal)
+                    ||request.Headers.Authorization?.ToString()!="Bot test-bot-token")throw new Exception("Invalid role lookup boundary");
+                if(RoleStatus!=HttpStatusCode.OK){var response=new HttpResponseMessage(RoleStatus);response.Headers.RetryAfter=new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(30));return response;}
+                if(MalformedRoles)return Json(new{roles="bad"});
+                var id=request.RequestUri.Segments.Last();
+                return Json(new{user=new{id=WrongIdentity?"999999999999999999":id},roles=(id=="222222222222222222"?Developer:MemberDeveloper)?new[]{"555555555555555555"}:new[]{"777777777777777777"}});
+            }
             if (request.RequestUri?.AbsoluteUri == "https://discord.com/api/oauth2/token")
             {
                 var form = QueryHelpers.ParseQuery(await request.Content!.ReadAsStringAsync(token));

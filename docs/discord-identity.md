@@ -15,30 +15,43 @@ This is not a migration/link to an existing old-site account. No accounts are
 merged by username or email, and a different Discord account means a different
 GC account. Additional providers require a separate ownership-proving flow.
 
-For this first private inspector, `Auth:AdminDiscordIds` is an explicit operator
-grant. The server resolves the current database link and configured grant on
-every admin request. Empty configuration denies everyone; there is no first-user
-administrator, client-side grant, impersonation mode, or development auth bypass.
-Grants are website-specific, not proof of Discord guild membership. Revoking a
-grant blocks subsequent privileged requests without waiting for cookie expiry;
-environment setting changes require restarting the process.
+The community Discord server's **Developer role** grants private inspector access.
+Configure `Discord:GuildId`, `Discord:DeveloperRoleId`, and `Discord:BotToken`.
+These IDs identify the server and role, never a list of privileged people. The
+legacy `Auth:AdminDiscordIds` setting is ignored and may be removed from old
+configuration. There is no automatic Admin-role, first-user or development bypass.
 
-This deliberately small grant list lets us prove website authentication without
-building the future bot. It is not the proposed long-term staff-management UI.
-When Discord roles become the authority, map stable guild/role IDs to website
-permissions in one server-side policy. Use a shared membership service fed by
-the bot/API, with bounded freshness and fail-closed behavior for privileged work.
-Do not grant stale admin authority indefinitely during provider failures.
+Every privileged request resolves the website account's verified Discord link,
+then calls Discord's HTTPS Get Guild Member endpoint using the server-held bot
+credential. Access requires that member's role-ID array to contain the configured
+Developer role. Names are display labels, not identity: renaming a role preserves
+access; deleting/recreating it requires configuring its new ID.
 
-The alternative is OAuth `guilds.members.read`, which can retrieve the signed-in
-user's membership without a bot. Repeated checks then require retained, encrypted
-provider tokens, refresh handling, revocation handling and a freshness policy.
-That is useful if membership must precede the bot slice, but does not yet justify
-adding those responsibilities for a few explicitly approved inspector users.
-Basic login currently requests only `identify` and does not retain provider tokens.
+No positive grants are cached in cookies or the database. Role removal takes effect
+on the next successfully checked request. Missing configuration, missing membership,
+invalid responses, timeouts, rate limits and provider errors deny privileged access.
+A 429 pauses lookups according to Retry-After (bounded to 1–3600 seconds, default 30).
+Ordinary sign-in and account access remain independent of role lookup availability.
+The existing internal `administrator` policy and `isAdmin` response field now mean
+Developer-role access; they do not imply the Discord Administrator permission.
+
+The website makes the REST lookup directly. The bot must be a member of the intended
+guild, but no bot process, Gateway connection, webhook or bot rewrite is required.
+Reuse the community-owned application where appropriate; do not reset a live bot's
+token merely to configure this site. Store its token server-side alongside the OAuth
+secret, never in JavaScript, cookies, logs or Git. The code only reads membership.
+Do not grant Administrator or Manage Roles just for this read operation.
+
+Basic login still requests only `identify` and does not retain user provider tokens.
+Using `guilds.members.read` instead would require securely retaining and refreshing
+per-user OAuth tokens for subsequent permission checks; a community bot credential
+keeps this slice smaller and also fits the planned bot integration. A shared cached
+membership service can follow when traffic justifies it, with explicit freshness
+and revocation behavior. No long-lived stale-role fallback is implemented.
 
 References: [Discord OAuth](https://docs.discord.com/developers/topics/oauth2),
-[current user guild member](https://docs.discord.com/developers/resources/user#get-current-user-guild-member).
+[Get Guild Member](https://docs.discord.com/developers/resources/guild#get-guild-member),
+[rate limits](https://docs.discord.com/developers/topics/rate-limits).
 
 ## Review of the old website
 
@@ -89,9 +102,9 @@ was copied into this implementation.
   viewer is exposed. Responses do not cache account/admin data.
 - The inspector reads the **website's GC database**, not the old local `lobby2`
   proof database. It can legitimately be empty until data is sent to this host.
-  Stats/session/history are labelled archive-only until their projectors exist.
+  All four streams now have projectors; see [mission pipeline](mission-pipeline.md).
 - Eight-hour, secure HTTP-only cookie sessions; OAuth state/correlation and PKCE;
-  no saved Discord tokens. Logout clears the browser cookie, not all copies of a
+  no saved user OAuth tokens. Logout clears the browser cookie, not all copies of a
   stolen session. Global session revocation is future work; admin grant removal
   independently denies privileged reads.
 
@@ -100,13 +113,15 @@ was copied into this implementation.
 1. In the community-owned [Discord Developer Portal](https://discord.com/developers/applications),
    use the intended application and register this exact OAuth redirect:
    `https://localhost:5081/auth/discord/callback`. Website sign-in needs the
-   OAuth client ID and client secret, **not the bot token**. Do not change the old
+   OAuth client ID and client secret. Role checks additionally need the bot token.
+   Do not change the old
    website's callback or reset its secret as part of this setup.
 2. Use the dedicated GC database described in the main README, apply its migrations
    with the schema owner, and use the restricted web runtime connection afterward.
    Do not run website migrations against the existing Lobby2 proof database.
 3. Run `scripts/Configure-DiscordLocal.ps1` interactively. It prompts for the
-   application ID, secret, database connection, and approved Discord user ID.
+   application ID, OAuth secret, database connection, Discord server ID, Developer
+   role ID and bot token. No individual user ID is requested.
    It saves development settings with .NET User Secrets outside the repository;
    that store is local plaintext protected by the Windows account, not a vault.
 4. Run `dotnet dev-certs https --trust` once, then start with
@@ -119,9 +134,9 @@ was copied into this implementation.
    Trust forwarded headers only from a configured reverse proxy; key storage
    must remain outside the web root and readable only by the service identity.
 
-An existing signed-in user can read their Discord ID on the account page before
-an operator grants inspector access. Do not post client secrets or database
-passwords in chat or commit them. OAuth setup and live consent remain necessary
+Assign or remove the Developer role in Discord to manage inspector access.
+Do not post OAuth secrets, bot tokens or database passwords in chat or commit them.
+OAuth setup and live consent remain necessary
 before claiming that a real community account has successfully signed in.
 
 ## Validation
@@ -129,6 +144,6 @@ before claiming that a real community account has successfully signed in.
 The backend suite runs the real ASP.NET OAuth and cookie handlers against a fake
 Discord HTTP backchannel in an isolated test host/database. It proves state
 rejection, PKCE exchange, stable identity on repeated login, secure cookies,
-anonymous/member/admin boundaries, grant/link removal, and CSRF logout.
+anonymous/member/admin boundaries, role/link removal, ignored legacy user grants, provider failures and rate limits, and CSRF logout.
 The fake provider is test-only; shipped endpoints cannot choose provider URLs
 or impersonate an identity. Real Discord consent requires operator configuration.
