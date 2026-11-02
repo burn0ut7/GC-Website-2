@@ -15,13 +15,12 @@ function loadYouTubeApi(){
  });
  return youtubeApiPromise;
 }
-function setVideoStartingVolume(iframe,playOnReady=false){
+function setVideoStartingVolume(iframe){
  loadYouTubeApi().then(YT=>{
   if(!iframe?.isConnected)return;
   const player=new YT.Player(iframe,{events:{onReady:event=>{
    if(!iframe.isConnected)return;
    event.target.setVolume(25);
-   if(playOnReady)event.target.playVideo();
   }}});
   youtubePlayers.push(player);
  }).catch(()=>{/* The native player and Watch on YouTube link remain usable. */});
@@ -40,6 +39,6 @@ function home(){
 }
 function wireLanding(){
  document.querySelector('#exploreBelow')?.addEventListener('click',()=>document.querySelector('#howWePlay').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
- document.querySelector('#playIntro')?.addEventListener('click',()=>{document.querySelector('#introPlayer').innerHTML='<div class="video-embed"><iframe src="https://www.youtube-nocookie.com/embed/_SW1tEkcfRU?enablejsapi=1&amp;autoplay=0" title="Global Conflicts Guide: How to Join and Play Arma Reforger With Us" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><a href="https://www.youtube.com/watch?v=_SW1tEkcfRU" target="_blank" rel="noopener">Watch on YouTube ↗</a>';setVideoStartingVolume(document.querySelector('#introPlayer iframe'),true)})
+ document.querySelector('#playIntro')?.addEventListener('click',()=>{document.querySelector('#introPlayer').innerHTML='<div class="video-embed"><iframe src="https://www.youtube-nocookie.com/embed/_SW1tEkcfRU?enablejsapi=1&amp;autoplay=0" title="Global Conflicts Guide: How to Join and Play Arma Reforger With Us" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><a href="https://www.youtube.com/watch?v=_SW1tEkcfRU" target="_blank" rel="noopener">Watch on YouTube ↗</a>';setVideoStartingVolume(document.querySelector('#introPlayer iframe'))})
 }
 window.addEventListener('hashchange',render);render();

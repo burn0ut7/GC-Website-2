@@ -6,3 +6,4 @@ artifacts/
 .env.*
 *.user
 appsettings.Local.json
+.local/
