@@ -1,15 +1,16 @@
+@font-face{font-family:'Lordcorps';src:url('fonts/Lordcorps.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
 /* Field Manual: shared content edges and a natural vertical flow. */
 .field{--field-width:min(1440px,90%)}
 .field .concepts{display:none}
 .field-shell{max-width:none;padding:0}
-.field h1,.field h2{font-family:'DM Sans',sans-serif;text-transform:none;font-weight:500;letter-spacing:-2px}
+.field h1,.field h2,.field h3{font-family:'Lordcorps','Barlow Condensed',sans-serif;text-transform:none;font-weight:400;font-synthesis:none;letter-spacing:.015em}
 .quiet-header{height:84px;display:flex;align-items:center;justify-content:space-between;width:var(--field-width);margin:auto;padding:0;gap:20px}
 .quiet-brand{font-size:18px;font-weight:500;letter-spacing:-.4px}
 .menu-trigger,.menu-top button{background:transparent;border:0;color:var(--ink);padding:13px 0;font-size:14px}
 .menu-trigger{display:flex;align-items:center;gap:20px;padding:13px 18px;border:1px solid #807754;border-radius:4px;background:var(--panel);transition:background .15s,border-color .15s,box-shadow .15s}.menu-trigger:hover,.menu-trigger[aria-expanded="true"]{background:#30382a;border-color:var(--accent);box-shadow:0 4px 14px #0003}
 .menu-trigger span{font-size:17px;color:var(--muted)}
 .field-opening{width:var(--field-width);margin:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.6fr);column-gap:6%;row-gap:24px;align-items:start;padding:40px 0 28px}
-.opening-copy h1{font-size:clamp(48px,5.3vw,76px);line-height:1.06;letter-spacing:-3px;margin:0 0 24px}
+.opening-copy h1{font-size:clamp(48px,5.3vw,76px);line-height:1.06;letter-spacing:.015em;margin:0 0 24px}
 .opening-copy h1 span{color:var(--accent)}
 .opening-copy>p{font-size:18px;margin:0 0 24px}
 .opening-copy .opening-time{font-size:15px;color:var(--ink);margin:0 0 28px}
@@ -18,9 +19,9 @@
 .scroll-invitation span{font-size:25px;color:var(--accent)}
 .field-story{background:var(--panel);padding:28px 0 38px;display:block}
 .story-copy{width:var(--field-width);margin:0 auto 20px}
-.story-copy h2{font-size:19px;line-height:1.4;letter-spacing:-.3px;margin:0;font-weight:500}
+.story-copy h2{font-size:19px;line-height:1.4;letter-spacing:.015em;margin:0;font-weight:400}
 .story-video{width:var(--field-width);margin:0 auto}
-.field-join-section h2{font-size:clamp(34px,3.5vw,50px);line-height:1.15;margin:0 0 24px;letter-spacing:-1.5px}
+.field-join-section h2{font-size:clamp(34px,3.5vw,50px);line-height:1.15;margin:0 0 24px;letter-spacing:.015em}
 .story-video button{position:relative;border:0;padding:0;background:#111;display:block;width:100%;aspect-ratio:16/9;cursor:pointer}
 .story-video button img{width:100%;height:100%;object-fit:cover;display:block}
 .story-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:76px;height:76px;display:grid;place-items:center;background:var(--accent);color:var(--button);border-radius:50%;font-size:22px;padding-left:3px}
@@ -52,13 +53,13 @@
 .menu-concepts{margin-top:25px;display:flex;flex-wrap:wrap;gap:16px;font-size:11px;color:var(--muted)}
 .menu-concepts>span{display:block;flex-basis:100%;font-size:10px}
 .field:not(.page-home) main{max-width:1440px;padding:0 7%;margin:auto}
-.field .page-heading h1{font-size:54px;line-height:1.1;letter-spacing:-2px}
+.field .page-heading h1{font-size:54px;line-height:1.1;letter-spacing:.015em}
 .field .eyebrow,.field .small-mono{font:12px 'DM Sans',sans-serif;letter-spacing:0;text-transform:none;color:var(--muted)}
 .field .media-heading h1{font-size:52px}
 .field .media-heading>.eyebrow{display:none}
-.field .media-links h2,.field .media-archive h2,.field .media-feature-caption h2{letter-spacing:-.6px}
+.field .media-links h2,.field .media-archive h2,.field .media-feature-caption h2{letter-spacing:.015em}
 .field .session-time{font-family:'DM Sans',sans-serif;font-size:38px}
-.field .schedule article h2{font-size:28px;letter-spacing:-.6px}
+.field .schedule article h2{font-size:28px;letter-spacing:.015em}
 .field .session-number{display:none}
 .field .player-heading h1{font-size:38px}
 .field .sidebar button{font-family:'DM Sans',sans-serif;font-size:12px}
@@ -68,19 +69,19 @@
  .field{--field-width:calc(100% - 48px)}
  .quiet-header{height:82px;padding:0}.quiet-brand{font-size:16px}.menu-trigger{font-size:13px;gap:12px}
  .field-opening{padding:28px 0 24px;display:block}.opening-media{max-width:100%;margin:32px 0 0}.opening-media img{aspect-ratio:16/10;object-position:center 42%}
- .opening-copy h1{font-size:clamp(43px,9vw,66px);line-height:1.1;letter-spacing:-2px;margin-bottom:25px}
+ .opening-copy h1{font-size:clamp(43px,9vw,66px);line-height:1.1;letter-spacing:.015em;margin-bottom:25px}
  .opening-copy>p{font-size:17px;max-width:270px;line-height:1.7;margin-bottom:28px}
  .opening-copy .opening-time{font-size:13px;max-width:none;margin-bottom:25px}
  .scroll-invitation{margin-top:20px;font-size:12px}
  .field-story{padding:24px 0 28px}
- .story-copy{margin-bottom:16px}.story-copy h2{font-size:17px;letter-spacing:0;margin:0}.field-join-section h2{font-size:34px;letter-spacing:-1px;margin-bottom:20px}
+ .story-copy{margin-bottom:16px}.story-copy h2{font-size:17px;letter-spacing:0;margin:0}.field-join-section h2{font-size:34px;letter-spacing:.015em;margin-bottom:20px}
  .story-copy p,.join-copy p{font-size:16px;line-height:1.8}
  .story-video{margin-top:0}.story-play{width:58px;height:58px;font-size:19px}
  .field-join-section{min-height:0;padding:44px 0;display:block}
  .large-session-time{font-size:19px;margin:24px 0 30px}.join-copy .btn{margin-top:5px}
- .field-more{padding-bottom:42px}.field-more>div{padding:30px 0 0}.field-more h2{font-size:34px;letter-spacing:-1px}.field-more p{font-size:16px}
+ .field-more{padding-bottom:42px}.field-more>div{padding:30px 0 0}.field-more h2{font-size:34px;letter-spacing:.015em}.field-more p{font-size:16px}
  .field footer{padding:30px 0;font-size:11px;flex-wrap:wrap;flex-direction:row;line-height:1.6}
  .field-menu{inset:72px 24px auto auto;padding:20px 24px}.menu-top{margin-bottom:16px}.field-menu nav a,.menu-extra{font-size:23px}.menu-concepts{margin-top:22px}
- .field:not(.page-home) main{padding:0 24px}.field .page-heading h1,.field .media-heading h1{font-size:38px;line-height:1.1;letter-spacing:-1.5px}.field .player-heading h1{font-size:30px}
+ .field:not(.page-home) main{padding:0 24px}.field .page-heading h1,.field .media-heading h1{font-size:38px;line-height:1.1;letter-spacing:.015em}.field .player-heading h1{font-size:30px}
  .field .sidebar button{font-size:10px}.field .media-feature-caption{align-items:start}.field .media-feature-caption h2{font-size:19px}
 }
