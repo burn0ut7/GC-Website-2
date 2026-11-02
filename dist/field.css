@@ -85,3 +85,5 @@
  .field:not(.page-home) main{padding:0 24px}.field .page-heading h1,.field .media-heading h1{font-size:38px;line-height:1.1;letter-spacing:-1.5px}.field .player-heading h1{font-size:30px}
  .field .sidebar button{font-size:10px}.field .media-feature-caption{align-items:start}.field .media-feature-caption h2{font-size:19px}
 }
+
+.field .join-copy .btn{gap:10px}.discord-icon{display:block;flex:none;width:20px;height:20px}
