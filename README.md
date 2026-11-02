@@ -32,11 +32,12 @@ back to UTC when no usable local timezone is detected. Run
 | --- | --- |
 | Website | Static landing assets plus versionable REST endpoints |
 | Database | PostgreSQL/Npgsql, explicit transactional migrations, checksum ledger, readiness |
-| Worker | Separate process/Windows Service support, persistent Quartz scheduler, heartbeat job |
+| Worker | Separate process/Windows Service support, persistent Quartz scheduler, heartbeat and telemetry projection jobs |
 | Accounts | GC UUIDs and unique provider identities; concurrent Discord sign-ins converge on one account |
 | Discord login | Authorization code + PKCE, secure session cookie, identify scope, no stored provider tokens |
 | API protection | Anonymous account requests get 401; logout requires authentication and CSRF token |
 | Telemetry intake | Server-scoped bearer credential, bounded body, immutable private archive and durable receipt |
+| Recording data | Shared Lobby2 contract validation, completeness summary and bounded time-window read API |
 | Operations | Process liveness, database readiness, limited request logs, repeatable integration checks |
 
 Discord and intake are disabled by default. Live Discord authorization has not
@@ -131,19 +132,21 @@ credential rotation will be a later change. Keep the archive directory controlle
 by the service account and do not use junctions/symlinks into public directories.
 
 Bodies are limited to 1 MiB and two concurrent requests. A successful receipt is
-HTTP 202 with `received_unvalidated`. Same key/content is safely repeatable;
+HTTP 202 with `accepted` (durable receipt, not a processing result). Same key/content is safely repeatable;
 changed content at the same revision returns 409. The archive is flushed before
 the database receipt. Interrupted writes can leave orphan files; they are not
 acknowledged as imported. No public archive-download route exists.
 
-**This is an intake boundary, not a Lobby2 importer or playback system.** It does
-not validate payload semantics, reconstruct missions, consume local game files,
-remove ready markers, or send player-history responses. Do not connect a live
-agent that deletes originals yet. There is no overall archive quota, retention,
-or orphan reconciliation job; configure and test those before sustained ingestion.
-The future adapter must reuse/version the actual Lobby2 contracts and distinguish
-received, validated and projected data. Production intake requires HTTPS; HTTP is
-permitted only in the explicit Development environment for local integration tests.
+The optional worker now validates and indexes telemetry with the shared Lobby2
+contract package. Set `Telemetry__Enabled=true` and the private archive path on
+the worker after migrations and runtime grants. See [the telemetry proof](docs/telemetry-proof.md)
+for statuses, private summary/window endpoints, limits and real-capture evidence.
+It does not reconstruct playback state, consume game-profile files, remove ready
+markers or return player history. Stats/session/history streams remain unprocessed.
+Do not connect a live agent that deletes originals yet. Overall archive quotas,
+retention and orphan reconciliation remain prerequisites for sustained ingestion.
+Production intake requires HTTPS; HTTP is permitted only in the explicit
+Development environment for local integration tests.
 
 ## Validation
 

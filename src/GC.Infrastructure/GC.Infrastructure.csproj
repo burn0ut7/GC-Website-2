@@ -7,6 +7,7 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Lobby2.TelemetryContracts" Version="1.0.1" />
     <PackageReference Include="Npgsql" Version="10.0.3" />
     <EmbeddedResource Include="Migrations/*.sql" />
   </ItemGroup>

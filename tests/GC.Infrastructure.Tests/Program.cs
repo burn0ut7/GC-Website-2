@@ -59,7 +59,7 @@ try
                 await Task.WhenAll(stdout, stderr);
             }
         }
-        await using var jobs = database.CreateCommand("SELECT count(*) FROM gc_jobs.qrtz_job_details");
+        await using var jobs = database.CreateCommand("SELECT count(*) FROM gc_jobs.qrtz_job_details WHERE job_name='heartbeat'");
         Check((long)(await jobs.ExecuteScalarAsync())! == 1, "Worker restart does not duplicate scheduled jobs");
     }
     Console.WriteLine("PASS: Database foundation checks complete.");

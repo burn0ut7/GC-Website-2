@@ -7,6 +7,9 @@ var connection = builder.Configuration.GetConnectionString("Gc")
     ?? throw new InvalidOperationException("ConnectionStrings__Gc is required. The worker never falls back to an in-memory database.");
 builder.Services.AddWindowsService(options => options.ServiceName = "GC Worker");
 builder.Services.AddSingleton(_ => Database.Open(connection));
+var telemetryEnabled = builder.Configuration.GetValue<bool>("Telemetry:Enabled");
+if (telemetryEnabled && (!Path.IsPathFullyQualified(builder.Configuration["Ingest:ArchivePath"] ?? "")))
+    throw new InvalidOperationException("Telemetry processing requires an absolute private Ingest:ArchivePath.");
 builder.Services.AddQuartz("GC", options =>
 {
     options.UseDefaultThreadPool(pool => pool.MaxConcurrency = 2);
@@ -29,6 +32,13 @@ builder.Services.AddQuartz("GC", options =>
     options.AddTrigger(trigger => trigger.WithIdentity("heartbeat-every-30-seconds")
         .ForJob(key).WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromSeconds(30))
             .RepeatForever()));
+    if (telemetryEnabled)
+    {
+        var telemetry = new JobKey("telemetry-projection");
+        options.AddJob<TelemetryJob>(job => job.WithIdentity(telemetry));
+        options.AddTrigger(trigger => trigger.WithIdentity("telemetry-every-5-seconds").ForJob(telemetry)
+            .WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromSeconds(5)).RepeatForever()));
+    }
 });
 builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 var host = builder.Build();

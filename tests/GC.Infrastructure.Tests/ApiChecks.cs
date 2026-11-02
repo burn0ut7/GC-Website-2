@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using GC.Infrastructure;
 
 internal static class ApiChecks
 {
@@ -62,6 +63,9 @@ internal static class ApiChecks
             await Expect(client.PostAsync(route, new ByteArrayContent(new byte[1048577])), HttpStatusCode.RequestEntityTooLarge);
             await Expect(client.PostAsync(route, new ByteArrayContent([])), HttpStatusCode.BadRequest);
             await Expect(client.GetAsync("/appsettings.json"), HttpStatusCode.NotFound);
+            var workerPath = Environment.GetEnvironmentVariable("GC_TEST_WORKER_DLL");
+            if (!string.IsNullOrWhiteSpace(workerPath))
+                await TelemetryChecks.Run(client, connection, archive, Guid.Parse(start.Environment["Ingest__ServerId"]!), workerPath);
             Console.WriteLine("PASS: API readiness, anonymous auth boundaries, intake authentication, duplicate/conflict, size limits and private files");
         }
         finally

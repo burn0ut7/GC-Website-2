@@ -2,6 +2,11 @@
   "version": 1,
   "dependencies": {
     "net10.0": {
+      "Lobby2.TelemetryContracts": {
+        "type": "Transitive",
+        "resolved": "1.0.1",
+        "contentHash": "/r3/QUt95tK+5vCrXboACA1hqm/w68zczyta5T3Rkv9GDsD7RFY4wR4kiviSVzjkoc68qI1l+m0AEKwbV2+ALA=="
+      },
       "Microsoft.Extensions.DependencyInjection.Abstractions": {
         "type": "Transitive",
         "resolved": "10.0.0",
@@ -26,6 +31,7 @@
       "gc.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "Lobby2.TelemetryContracts": "[1.0.1, )",
           "Npgsql": "[10.0.3, )"
         }
       }
