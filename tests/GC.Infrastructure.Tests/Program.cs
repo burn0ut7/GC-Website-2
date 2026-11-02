@@ -24,6 +24,7 @@ try
     Check(await Database.IsReady(database, default), "Fresh schema migration succeeds");
     var signIns = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => Accounts.SignInDiscord(database, "123456789012345678", "Test member", default)));
     Check(signIns.Distinct().Count() == 1, "Concurrent Discord sign-ins resolve to one GC account");
+    await IdentityChecks.Run(database);
     var web = Environment.GetEnvironmentVariable("GC_TEST_WEB_DLL");
     if (!string.IsNullOrWhiteSpace(web)) await ApiChecks.Run(web, settings.ConnectionString);
     var worker = Environment.GetEnvironmentVariable("GC_TEST_WORKER_DLL");

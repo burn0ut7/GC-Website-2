@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Data inspector — Global Conflicts</title><link rel="stylesheet" href="/styles.css?v=account-1"><link rel="stylesheet" href="/account.css"></head>
+<body class="field"><header class="quiet-header"><a class="quiet-brand" href="/">Global Conflicts</a><a href="/account.html">Your account</a></header><main class="account-panel">
+<h1>Data inspector</h1><p>Read-only · Website intake</p><p id="scope"></p><p id="status" role="status">Loading received data…</p><button class="btn" id="refresh">Refresh</button>
+<h2>Collected streams</h2><div class="table-wrap"><table><thead><tr><th>Stream</th><th>Processing status</th><th>Batches</th><th>Last received</th></tr></thead><tbody id="streams"></tbody></table></div>
+<h2>Latest 50 batches</h2><div class="table-wrap"><table><thead><tr><th>Received</th><th>Stream / recording</th><th>Revision</th><th>Status</th><th>Inspect</th></tr></thead><tbody id="batches"></tbody></table></div>
+<section id="recording" hidden><h2>Recording details</h2><pre id="summary"></pre><form id="range"><label>From (milliseconds)<input id="from" type="number" min="0" step="any" required value="0"></label><label>Until (milliseconds)<input id="until" type="number" min="0" step="any" required value="1000"></label><button class="btn" type="submit">Read records</button></form><p>Up to 60 seconds per window; 100 records per page. These are raw events, not reconstructed playback. Reload the recording if new batches arrive.</p><pre id="records"></pre><button class="btn" id="next" hidden>Next records</button></section>
+</main><script src="/admin.js"></script></body></html>

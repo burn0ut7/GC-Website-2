@@ -25,7 +25,9 @@ public static class Identity
             options.Events.OnRedirectToLogin = context => { context.Response.StatusCode = 401; return Task.CompletedTask; };
             options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = 403; return Task.CompletedTask; };
         });
-        builder.Services.AddAuthorization();
+        builder.Services.AddAuthorization(options => options.AddPolicy("administrator", policy =>
+            policy.RequireAuthenticatedUser().AddRequirements(new AdministratorRequirement())));
+        builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, AdministratorHandler>();
         builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
         if (!builder.Configuration.GetValue<bool>("Discord:Enabled")) return;
         var clientId = Required(builder.Configuration, "Discord:ClientId");
@@ -48,6 +50,8 @@ public static class Identity
             options.UsePkce = true; options.SaveTokens = false;
             options.Events.OnCreatingTicket = async context =>
             {
+                if (context.Request.Query.TryGetValue("iss", out var issuer) && issuer != "https://discord.com")
+                    throw new InvalidOperationException("Unexpected OAuth issuer.");
                 using var request = new HttpRequestMessage(HttpMethod.Get, context.Options.UserInformationEndpoint);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", context.AccessToken);
                 using var response = await context.Backchannel.SendAsync(request, context.HttpContext.RequestAborted);
@@ -76,12 +80,24 @@ public static class Identity
             if (!app.Configuration.GetValue<bool>("Discord:Enabled"))
                 return Results.Json(new { error = "discord_not_configured" }, statusCode: 503);
             if (!context.Request.IsHttps) return Results.BadRequest(new { error = "https_required" });
-            return Results.Challenge(new AuthenticationProperties { RedirectUri = "/#home" }, ["discord"]);
+            return Results.Challenge(new AuthenticationProperties { RedirectUri = "/account.html" }, ["discord"]);
         });
-        app.MapGet("/api/me", (ClaimsPrincipal user) => Results.Ok(new
+        app.MapGet("/api/auth/status", (HttpContext context) =>
         {
-            id = user.FindFirstValue(ClaimTypes.NameIdentifier), name = user.Identity?.Name
-        })).RequireAuthorization();
+            context.Response.Headers.CacheControl = "no-store";
+            return Results.Ok(new { discordEnabled = app.Configuration.GetValue<bool>("Discord:Enabled"), https = context.Request.IsHttps });
+        });
+        app.MapGet("/api/me", async (HttpContext context, Microsoft.AspNetCore.Authorization.IAuthorizationService authorization) =>
+        {
+            context.Response.Headers.CacheControl = "no-store";
+            var database = context.RequestServices.GetService<NpgsqlDataSource>();
+            if (database is null) return Results.StatusCode(503);
+            if (!Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out var id)) return Results.Unauthorized();
+            var discord = await Accounts.DiscordIdentity(database, id, context.RequestAborted);
+            if (discord is null) return Results.Unauthorized();
+            return Results.Ok(new { id, name = discord.Value.Name, discordId = discord.Value.Subject,
+                isAdmin = (await authorization.AuthorizeAsync(context.User, null, "administrator")).Succeeded });
+        }).RequireAuthorization();
         app.MapGet("/api/auth/csrf", (HttpContext context, IAntiforgery antiforgery) =>
         {
             context.Response.Headers.CacheControl = "no-store";

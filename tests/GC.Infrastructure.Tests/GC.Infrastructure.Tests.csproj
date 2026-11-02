@@ -7,5 +7,5 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
-  <ItemGroup><ProjectReference Include="../../src/GC.Infrastructure/GC.Infrastructure.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/GC.Infrastructure/GC.Infrastructure.csproj" /><ProjectReference Include="../../GC.Web.csproj" /></ItemGroup>
 </Project>

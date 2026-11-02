@@ -5,10 +5,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <UserSecretsId>GC-Website-2-local-auth</UserSecretsId>
     <DefaultItemExcludes>$(DefaultItemExcludes);artifacts/**;.local/**;src/**;tests/**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="src/GC.Infrastructure/GC.Infrastructure.csproj" />
     <Content Include="dist/**/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="PrivatePages/**/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

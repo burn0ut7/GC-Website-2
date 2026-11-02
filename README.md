@@ -1,7 +1,8 @@
 # Global Conflicts backend foundation
 
 .NET 10 website and separate Windows-compatible worker. The existing landing
-page remains the only UI. No production services are installed automatically.
+page is accompanied by an account page and a private read-only data inspector.
+No production services are installed automatically.
 
 ## Run the website
 
@@ -86,7 +87,13 @@ This is the scheduling foundation; no business notifications or arbitrary script
 are scheduled. The Windows Service adapter is included but no service registration
 has been performed. Retention and maintenance jobs come in later small changes.
 
-## Discord login configuration (no new UI)
+## Discord login and private inspector
+
+See [Discord identity, old-site review and local setup](docs/discord-identity.md).
+`/account.html` shows your linked Discord identity; `/admin` and `/api/admin/*`
+require an explicit approved Discord ID in `Auth:AdminDiscordIds`.
+This grant is checked server-side on every request, not cached in the session.
+The inspector reads only this website's database, not the older Lobby2 proof store.
 
 Environment settings required to enable it:
 
@@ -98,13 +105,13 @@ Environment settings required to enable it:
 
 Register the exact HTTPS callback `/auth/discord/callback` on your domain in
 Discord. Visit `/auth/discord` to begin. Successful login returns to the landing
-page. `/api/me` reads the current GC identity. `/api/auth/csrf` returns the token
+account page. `/api/me` reads the current GC identity. `/api/auth/csrf` returns the token
 for cookie-authenticated writes; send it as `X-CSRF-TOKEN` to `POST /auth/logout`.
 
 Sessions expire after eight hours without sliding renewal. Logout removes the
 browser cookie; central session revocation and account administration are future
-work. There are no administrator grants or privileged account actions in this
-slice. Account linking must prove provider ownership; no generic identity-write
+work. Administrator grants currently permit read-only data inspection, not account
+administration. Account linking must prove provider ownership; no generic identity-write
 endpoint exists. Patreon linking and live bot/webhook handlers are deferred.
 
 Secure cookies require HTTPS. Explicitly configure trusted proxy forwarding at

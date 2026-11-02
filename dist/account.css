@@ -1,0 +1,16 @@
+[hidden]{display:none!important}
+.account-panel{width:min(1100px,90%);margin:40px auto 80px}
+.account-panel h1{font-size:clamp(32px,5vw,48px);letter-spacing:-1px}
+.account-panel h2{margin-top:36px;font-size:24px;letter-spacing:0}
+.account-panel a:not(.btn){text-decoration:underline;text-underline-offset:4px}
+.account-panel dd{margin:6px 0 20px;overflow-wrap:anywhere}
+.account-panel dt{color:var(--muted)}
+.account-panel .btn{justify-content:center;gap:12px}
+.account-panel .table-wrap{overflow:auto;margin:20px 0}
+.account-panel table{width:100%;border-collapse:collapse;text-align:left;font-size:14px}
+.account-panel th,.account-panel td{padding:12px;border-bottom:1px solid var(--line);vertical-align:top}
+.account-panel pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--panel);padding:20px;max-height:500px;overflow:auto}
+.account-panel label{display:inline-block;margin:8px 16px 8px 0}
+.account-panel input{display:block;width:150px;padding:10px;margin-top:8px;background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+.account-panel button{cursor:pointer}
+.account-panel button:disabled{opacity:.5;cursor:default}

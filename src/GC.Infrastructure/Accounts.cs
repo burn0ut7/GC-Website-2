@@ -4,6 +4,14 @@ namespace GC.Infrastructure;
 
 public static class Accounts
 {
+    public static async Task<(string Subject, string Name)?> DiscordIdentity(NpgsqlDataSource database, Guid user, CancellationToken token)
+    {
+        await using var query = database.CreateCommand("SELECT subject,display_name FROM gc.external_identities WHERE provider='discord' AND user_id=$1");
+        query.Parameters.AddWithValue(user);
+        await using var reader = await query.ExecuteReaderAsync(token);
+        return await reader.ReadAsync(token) ? (reader.GetString(0), reader.GetString(1)) : null;
+    }
+
     public static async Task<Guid> SignInDiscord(NpgsqlDataSource database, string subject, string name, CancellationToken token)
     {
         if (subject.Length is < 1 or > 32 || !subject.All(char.IsAsciiDigit) || name.Length > 200)

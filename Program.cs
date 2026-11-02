@@ -43,11 +43,24 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseHttpLogging();
 app.UseRateLimiter();
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/auth") || context.Request.Path.StartsWithSegments("/api/auth") ||
+        context.Request.Path.StartsWithSegments("/api/me") || context.Request.Path.StartsWithSegments("/api/admin") ||
+        context.Request.Path.StartsWithSegments("/admin"))
+    {
+        context.Response.Headers.CacheControl = "no-store";
+        context.Response.Headers["Referrer-Policy"] = "no-referrer";
+        context.Response.Headers["X-Frame-Options"] = "DENY";
+    }
+    await next(context);
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 Identity.Map(app);
+AdminData.Map(app);
 Integrations.Map(app);
 
 // Liveness only: database and external services are not part of this slice.

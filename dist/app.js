@@ -1,6 +1,6 @@
 const app=document.querySelector('#app');
 function shell(content){
- return `<div class="field-shell"><header class="quiet-header"><a href="#home" class="quiet-brand">Global Conflicts</a></header><main>${content}</main><footer><span>Global Conflicts</span><a href="https://discord.globalconflicts.net" target="_blank" rel="noopener">Discord ↗</a></footer></div>`;
+ return `<div class="field-shell"><header class="quiet-header"><a href="#home" class="quiet-brand">Global Conflicts</a></header><main>${content}</main><footer><span>Global Conflicts</span><a href="/account.html">Your account</a><a href="https://discord.globalconflicts.net" target="_blank" rel="noopener">Discord ↗</a></footer></div>`;
 }
 let youtubeApiPromise;
 let youtubePlayers=[];

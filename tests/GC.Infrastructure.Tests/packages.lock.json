@@ -34,6 +34,12 @@
           "Lobby2.TelemetryContracts": "[1.0.1, )",
           "Npgsql": "[10.0.3, )"
         }
+      },
+      "gc.web": {
+        "type": "Project",
+        "dependencies": {
+          "GC.Infrastructure": "[1.0.0, )"
+        }
       }
     }
   }

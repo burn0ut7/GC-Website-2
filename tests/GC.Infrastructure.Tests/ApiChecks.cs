@@ -52,6 +52,9 @@ internal static class ApiChecks
             using var client = new HttpClient { BaseAddress = new Uri(address), Timeout = TimeSpan.FromSeconds(10) };
             await Expect(client.GetAsync("/api/ready"), HttpStatusCode.OK);
             await Expect(client.GetAsync("/api/me"), HttpStatusCode.Unauthorized);
+            await Expect(client.GetAsync("/admin"), HttpStatusCode.Unauthorized);
+            await Expect(client.GetAsync("/api/admin/data"), HttpStatusCode.Unauthorized);
+            await Expect(client.GetAsync("/PrivatePages/admin.html"), HttpStatusCode.NotFound);
             await Expect(client.GetAsync("/auth/discord"), HttpStatusCode.ServiceUnavailable);
             var route = "/api/v1/ingest/telemetry/" + Guid.NewGuid() + "/0";
             await Expect(client.PostAsync(route, new ByteArrayContent([1, 2, 3])), HttpStatusCode.Unauthorized);
