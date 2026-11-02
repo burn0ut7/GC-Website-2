@@ -119,7 +119,7 @@ was copied into this implementation.
 2. Use the dedicated GC database described in the main README, apply its migrations
    with the schema owner, and use the restricted web runtime connection afterward.
    Do not run website migrations against the existing Lobby2 proof database.
-3. Edit the private root file `appsettings.Local.json`. Copy `appsettings.Local.example.json` if missing. Each field explains where to find its value. The file is ignored by Git, copied into local build output, and excluded from published builds. It is plaintext: keep it private. Restart after editing. Environment/command-line settings override it. No prompt script or personal user-ID list is used.
+3. Edit the private root file `appsettings.Local.json`. Copy `appsettings.Local.example.json` if missing. Use strict JSON without comments. `ClientId` and `ClientSecret` come from the application in Discord Developer Portal; `GuildId` identifies the community server, `DeveloperRoleId` its Developer role, and `BotToken` the private credential used for role checks. The file is ignored by Git, copied into local build output, and excluded from published builds. It is plaintext: keep it private. Restart after editing. Environment/command-line settings override it. No prompt script or personal user-ID list is used.
 4. Run `dotnet dev-certs https --trust` once, then start with
    `dotnet run --project GC.Web.csproj --no-launch-profile -- --urls https://localhost:5081`
    with `ASPNETCORE_ENVIRONMENT=Development`. Open
