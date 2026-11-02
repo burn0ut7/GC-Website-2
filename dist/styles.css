@@ -67,6 +67,6 @@ footer a{text-decoration:underline;text-underline-offset:4px}
 .join-copy .btn{margin-top:5px}
 .field footer{padding:30px 0;font-size:11px;flex-wrap:wrap;flex-direction:row;line-height:1.6}
 }
-.field .join-copy .btn{gap:10px}
+
 .discord-icon{display:block;flex:none;width:20px;height:20px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
