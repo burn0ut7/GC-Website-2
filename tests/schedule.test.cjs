@@ -19,6 +19,8 @@ assert.match(context.sessionDisplay(now, 'America/New_York').time, /EST|GMT-5/);
 assert.doesNotMatch(context.sessionDisplay(now, 'America/New_York').time, /local time/);
 assert.match(context.sessionDisplay(now, null).time, /UTC/);
 assert.match(context.sessionDisplay(now, 'invalid/timezone').time, /UTC/);
+assert.match(context.sessionDisplay(now, 'UTC', '24h').time, /20:00/);
+assert.match(context.sessionDisplay(now, 'UTC', '12h').time, /8:00\s*PM/i);
 assert.equal(context.sessionDisplay(new Date('2026-10-23T00:00:00Z'), 'America/New_York').days, 'Upcoming sessions');
 assert.equal(sessions('2026-11-07T20:00:01Z')[0], '2026-11-08T20:00:00.000Z');
 console.log('PASS: European DST, Eastern transition gap, local date rollover, UTC fallback and elapsed sessions');

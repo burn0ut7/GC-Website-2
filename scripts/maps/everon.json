@@ -1,0 +1,18 @@
+{
+  "name": "Everon",
+  "slug": "everon",
+  "worldSuffix": "worlds/examples/eden/eden_lobby.ent",
+  "bounds": [
+    0,
+    0,
+    12800,
+    12800
+  ],
+  "calibration": "Confirmed against live SCR_MapEntity Size/Offset; Workbench export must match these bounds",
+  "topography": "worlds/Eden/Eden.topo",
+  "topographySha256": "f967bd502532b964a0dd21013d55ea66d6537bded2d92d1a9bb724fadbfb73fa",
+  "raster": "UI/Textures/Map/worlds/EveronRasterized.edds",
+  "tilePrefix": "worlds/Eden/Eden/.Data/Eden_",
+  "tileCount": 2500,
+  "tileColumns": 50
+}

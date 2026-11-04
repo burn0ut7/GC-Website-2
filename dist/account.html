@@ -1,8 +1,81 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Your account — Global Conflicts</title><link rel="stylesheet" href="/styles.css?v=account-1"><link rel="stylesheet" href="/account.css"></head>
-<body class="field"><header class="quiet-header"><a class="quiet-brand" href="/">Global Conflicts</a></header><main class="account-panel">
-<h1>Your account</h1><p id="status" role="status">Checking your sign-in…</p>
-<a class="btn discord-button" id="signIn" href="/auth/discord" hidden><img class="discord-icon" src="/discord.svg" alt="" width="20" height="20">Sign in with Discord</a>
-<section id="profile" hidden><h2>Linked account</h2><dl><dt>Discord</dt><dd id="discordName"></dd><dt>Discord ID</dt><dd id="discordId"></dd><dt>Website account ID</dt><dd id="accountId"></dd></dl>
-<p>Your Discord sign-in is linked to this website account. Additional account providers are not available yet.</p><p><a id="adminLink" href="/admin" hidden>Open data inspector →</a></p><button class="btn" id="signOut">Sign out</button></section>
-<p><a href="/">← Back to the community</a></p></main><script src="/account.js"></script></body></html>
+
+<html lang="en">
+
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Account — Global Conflicts</title><link rel="stylesheet" href="/styles.css?v=account-2"><link rel="stylesheet" href="/account.css?v=brand-1"><link rel="stylesheet" href="/navigation.css?v=1"></head>
+
+<body class="field account-page">
+
+<header class="quiet-header"><a class="quiet-brand" href="/">Global Conflicts</a><a class="community-return" href="/">Back to the community <span aria-hidden="true">↗</span></a></header>
+
+<main class="account-workspace">
+
+<div class="account-heading"><h1>Account</h1></div>
+
+<div id="authState"><p id="status" role="status">Loading your account…</p><a class="btn discord-button" id="signIn" href="/auth/discord" hidden><img class="discord-icon" src="/discord.svg" alt="" width="20" height="20">Sign in with Discord</a><button id="retryAccount" class="secondary-button" hidden>Try again</button></div>
+
+<div id="profile" class="account-layout" hidden>
+
+<aside class="account-sidebar">
+
+<div class="account-person"><span id="initials" class="account-avatar" aria-hidden="true">GC</span><div><strong id="accountName"></strong><span>Community account</span></div></div>
+
+<nav class="account-navigation" aria-label="Account settings"><a href="#preferences" data-section="preferences" aria-current="page">Profile &amp; preferences</a><a href="#connections" data-section="connections">Connected accounts</a><a href="#roles" data-section="roles">Roles &amp; access</a></nav>
+
+<a id="adminLink" class="inspector-link" href="/admin" hidden>Developer tools <span aria-hidden="true">↗</span></a>
+
+<button class="sign-out-button" id="signOut">Sign out</button><p id="sessionMessage" class="feedback" role="status"></p>
+
+</aside>
+
+<div class="account-content">
+
+<section id="preferences" class="account-section" aria-labelledby="preferencesTitle">
+
+<div class="section-heading"><h2 id="preferencesTitle">Profile &amp; preferences</h2><p>Saved to your account, wherever you sign in.</p></div>
+
+<form id="preferencesForm">
+
+<fieldset id="preferenceFields" disabled><legend class="visually-hidden">Your website preferences</legend>
+
+<div class="settings-block"><h3>Your profile</h3><label for="displayName">Display name</label><input id="displayName" name="displayName" maxlength="40" autocomplete="nickname" aria-describedby="nameHelp"><p class="field-help" id="nameHelp">Leave blank to use your Discord name. This does not change your Discord or in-game name.</p></div>
+
+<div class="settings-block"><h3>Session times</h3><div class="settings-grid"><div><label for="timeZone">Time zone</label><select id="timeZone" name="timeZone"><option value="local">Use my device’s time zone</option><option value="UTC">UTC</option><option value="Europe/Berlin">Central European time</option></select></div><div><label for="clockFormat">Clock format</label><select id="clockFormat" name="clockFormat"><option value="auto">Use my device’s format</option><option value="12h">12-hour · 3:00 PM</option><option value="24h">24-hour · 15:00</option></select></div></div><p class="field-help">Changes how session times appear on the website. The session schedule stays the same.</p></div>
+
+</fieldset>
+
+<div class="settings-actions"><button class="btn" id="saveSettings" type="submit" disabled>Save changes</button><button class="secondary-button" id="resetSettings" type="button" disabled>Restore defaults</button><p class="feedback" id="saveStatus" role="status" aria-live="polite"></p></div>
+
+</form><button id="retrySettings" class="secondary-button" hidden>Reload settings</button>
+
+</section>
+
+<section id="roles" class="account-section" aria-labelledby="rolesTitle" hidden><div class="section-heading"><h2 id="rolesTitle">Roles &amp; access</h2><p>Your roles in our Discord server.</p></div><p class="field-help">Website access is assigned through Discord roles.</p><div id="roleList" aria-live="polite"></div><button id="retryRoles" class="connection-button" hidden>Try again</button></section>
+<section id="connections" class="account-section" aria-labelledby="connectionsTitle" hidden>
+
+<div class="section-heading"><h2 id="connectionsTitle">Connected accounts</h2></div>
+
+<div class="connection-list">
+
+<article class="connection-row"><span class="provider-mark provider-discord"><img src="/discord.svg" alt="" width="28" height="28"></span><div class="connection-info"><h3>Discord <span class="connection-state connected">Connected</span></h3></div><span class="provider-note">Sign-in account</span></article>
+
+
+
+<article class="connection-row"><span class="provider-mark provider-steam" aria-hidden="true"><img src="/steam.svg" alt="" width="28" height="28"></span><div class="connection-info"><h3>Steam <span id="steamState" class="connection-state">Loading...</span></h3></div><button id="linkSteam" class="connection-button connection-button-primary" disabled>Link Steam</button><button id="unlinkSteam" class="connection-button" aria-label="Disconnect Steam" hidden>Disconnect</button></article>
+
+
+<p id="steamMessage" class="feedback" role="status"></p><button id="retrySteam" class="secondary-button" hidden>Retry connection status</button>
+
+<article class="connection-row"><span class="provider-mark provider-patreon" aria-hidden="true"><img src="/patreon.svg" alt="" width="28" height="28"></span><div class="connection-info"><h3>Patreon <span id="patreonState" class="connection-state">Loading...</span></h3><span id="patreonSupport" class="field-help"></span></div><button id="linkPatreon" class="connection-button connection-button-primary" disabled>Link Patreon</button><button id="unlinkPatreon" class="connection-button" aria-label="Disconnect Patreon" hidden>Disconnect</button></article>
+
+</div>
+
+<p id="patreonMessage" class="feedback" role="status"></p><button id="retryPatreon" class="connection-button" hidden>Try again</button>
+<details class="account-details"><summary>Account identifiers</summary><dl><dt>Discord ID</dt><dd id="discordId"></dd><dt>Website account ID</dt><dd id="accountId"></dd></dl><p>These identify your accounts. They do not grant permissions.</p></details>
+
+</section>
+
+</div></div>
+
+</main><script src="/account.js?v=patreon-1"></script><script src="/navigation.js?v=1"></script></body></html>
+

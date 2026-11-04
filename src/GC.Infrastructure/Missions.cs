@@ -40,7 +40,7 @@ public static class Missions
             var header=doc.RootElement;
             var allowed=stream switch
             {
-                "history"=>new[]{"world","startedAt","endedAt","serverName","missionName","author","hostKind","scenarioPath","status","outcome","resultFactions","winningFactions","sessionPerformance","gamePerformance","phases","factions"},
+                "history"=>new[]{"world","startedAt","endedAt","serverName","missionName","author","hostKind","scenarioPath","scenarioResource","description","commanders","observedSeconds","status","outcome","resultFactions","winningFactions","sessionPerformance","gamePerformance","phases","factions"},
                 "stats"=>new[]{"schemaVersion","world","startedAt","durationSeconds","playtimeBasis","minimumPlayersForPlaytime"},
                 _=>new[]{"world","startedAt"}
             };
@@ -90,7 +90,7 @@ public static class Missions
     {
         if(after?.Length>256)throw new ArgumentException("Invalid player cursor.");
         await using var query=database.CreateCommand("""
-            SELECT identity,name,revision,counters FROM gc.mission_players WHERE server_id=$1 AND mission_id=$2
+            SELECT identity,name,revision,counters,details FROM gc.mission_players WHERE server_id=$1 AND mission_id=$2
             AND ($3::text IS NULL OR identity COLLATE "C">$3 COLLATE "C") ORDER BY identity COLLATE "C" LIMIT 51
             """);
         query.Parameters.AddWithValue(server);query.Parameters.AddWithValue(mission);
@@ -101,7 +101,7 @@ public static class Missions
         {
             if(players.Count==50){more=true;break;}
             using var doc=JsonDocument.Parse(reader.GetString(3));cursor=reader.GetString(0);
-            players.Add(new{identity=cursor,name=reader.GetString(1),revision=reader.GetInt32(2),counters=doc.RootElement.Clone()});
+            players.Add(new{identity=cursor,name=reader.GetString(1),revision=reader.GetInt32(2),counters=doc.RootElement.Clone(),details=reader.IsDBNull(4)?(JsonElement?)null:JsonSerializer.Deserialize<JsonElement>(reader.GetString(4))});
         }
         return new{players,nextAfter=more?cursor:null,semantics="Latest cumulative statistics snapshot, not a sum of revisions. Missing optional counters remain absent. Restart pagination if the mission stats revision changes."};
     }

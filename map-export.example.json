@@ -1,0 +1,10 @@
+{
+  "mcpConfiguration": "C:/Tools/ReforgerMcp/configuration.json",
+  "profile": "C:/Users/YOUR_USER/Documents/My Games/ArmaReforgerWorkbench/profile",
+  "pakRoots": [
+    "C:/Program Files (x86)/Steam/steamapps/common/Arma Reforger"
+  ],
+  "output": "C:/GC-Map-Exports",
+  "node": "node",
+  "missionRoots": []
+}

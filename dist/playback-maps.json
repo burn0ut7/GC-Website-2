@@ -1,0 +1,68 @@
+[
+  {
+    "name": "Arland",
+    "worldSuffix": "worlds/examples/arland/Arland_Lobby.ent",
+    "image": "/maps/arland.webp",
+    "details": "/maps/arland-detail.json",
+    "bounds": [
+      0,
+      0,
+      4096,
+      4096
+    ],
+    "source": "Arma Reforger 1.8.0.13 \u2014 ArlandRasterized.edds; SCR_MapEntity.Size/Offset live probe 2026-11-02",
+    "natural": {
+      "inlandWater": "/maps/arland-water.webp",
+      "ocean": "/maps/arland-ocean.webp",
+      "relief": "/maps/arland-relief.webp",
+      "trees": "/maps/arland-trees.webp",
+      "bushes": "/maps/arland-bushes.webp",
+      "rocks": "/maps/arland-rocks.webp"
+    },
+    "labels": "/maps/arland-labels.json",
+    "symbols": "/maps/arland-symbols.json",
+    "buildings": "/maps/arland-buildings.json"
+  },
+  {
+    "name": "Everon",
+    "worldSuffix": "worlds/examples/eden/eden_lobby.ent",
+    "bounds": [
+      0.0,
+      0.0,
+      12800.0,
+      12800.0
+    ],
+    "image": "/maps/everon.webp",
+    "source": "Arma Reforger 1.8.0.13; EveronRasterized.edds; live SCR_MapEntity.Size/Offset operation d0d6846143d64b0b8a87bab9e33206f4",
+    "provenance": {
+      "originalSha256": "c69660af054d7fe0691de693b7a6908f4ab9bcef51c10f70e984f9536ac8ba71",
+      "decodedSha256": "2dd4519d2d61ddd2ccc95d8f503400bed11afa52aafd48934807a391be0ce3cb",
+      "calibration": "Arma Reforger 1.8.0.13; EveronRasterized.edds; live SCR_MapEntity.Size/Offset operation d0d6846143d64b0b8a87bab9e33206f4",
+      "pixels": [
+        4096,
+        4096
+      ]
+    }
+  },
+  {
+    "name": "Kolguyev",
+    "worldSuffix": "worlds/playback/cain_playback.ent",
+    "bounds": [
+      0.0,
+      0.0,
+      12800.0,
+      12800.0
+    ],
+    "image": "/maps/kolguyev.webp",
+    "source": "Arma Reforger 1.8.0.13; CainRasterized.edds; live SCR_MapEntity.Size/Offset operation 593022b8f04d4510a161d809f2f7e556",
+    "provenance": {
+      "originalSha256": "90e9b50fd46a63a5b046dcc666d711f9a6bad311eb7550780bda9760fc0687de",
+      "decodedSha256": "91a1021dccaaa05b4d496979a1cee9f61323e6249b59acfea850aebd7f532a9f",
+      "calibration": "Arma Reforger 1.8.0.13; CainRasterized.edds; live SCR_MapEntity.Size/Offset operation 593022b8f04d4510a161d809f2f7e556",
+      "pixels": [
+        4096,
+        4096
+      ]
+    }
+  }
+]

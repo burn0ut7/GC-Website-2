@@ -8,8 +8,12 @@ public static class AdminData
     public static void Map(WebApplication app)
     {
         app.MapGet("/admin", () => Results.File(Path.Combine(AppContext.BaseDirectory, "PrivatePages", "admin.html"), "text/html"))
-            .RequireAuthorization("administrator");
-        var routes = app.MapGroup("/api/admin").RequireAuthorization("administrator").RequireRateLimiting("intake");
+            .WithMetadata(new Identity.ProtectedPage()).RequireAuthorization(SiteNavigation.AdminPolicy);
+        var routes = app.MapGroup("/api/admin").RequireAuthorization(SiteNavigation.AdminPolicy).RequireRateLimiting("intake");
+        GameRecordRoutes.Map(app,routes);
+        AdminDatabase.Map(routes);
+        DataExplorer.Map(app,routes);
+        PlaybackRoutes.Map(app,routes);
         MissionRoutes.Map(routes.MapGroup("/missions/{server:guid}"),context=>Guid.Parse((string)context.Request.RouteValues["server"]!));
         routes.MapGet("/data", async (HttpContext context) =>
         {
@@ -47,7 +51,7 @@ public static class AdminData
             return summary is null ? Results.NotFound() : Results.Ok(summary);
         });
         routes.MapGet("/recordings/{server:guid}/{recording:guid}/records", async (HttpContext context, Guid server, Guid recording,
-            double fromMs, double untilMs, int? afterSequence) =>
+            double fromMs, double untilMs, int? afterSequence, int? limit, string? type) =>
         {
             var database = context.RequestServices.GetService<NpgsqlDataSource>();
             var archive = app.Configuration["Ingest:ArchivePath"];
@@ -57,7 +61,7 @@ public static class AdminData
             try
             {
                 return Results.Ok(await Recordings.Range(database, archive, server, recording, fromMs, untilMs,
-                    afterSequence ?? 0, 100, context.RequestAborted));
+                    afterSequence ?? 0, limit ?? 100, context.RequestAborted, type));
             }
             catch (ArgumentException) { return Results.BadRequest(new { error = "invalid_range" }); }
             catch (InvalidDataException) { return Results.Json(new { error = "archive_integrity" }, statusCode: 503); }

@@ -64,3 +64,45 @@ Use a typed, server-owned command mailbox or authenticated server polling. Bind 
 `Test-Backend.ps1` creates and drops only a random test database. Synthetic tests exercise all four streams, worker restart, a delayed revision, duplicate acknowledgement, storage failure/recovery, orphan publication recovery, conflicting events, bounded reads and authorization. Existing migration, OAuth and telemetry checks run alongside them.
 
 A controlled Workbench session on 2026-11-02 passed through lobby, slotting, briefing, game and production mission end. Its private copied outputs contained 50 batches: 4 statistics, 8 session, 14 history, 24 native telemetry. End-to-end comparison verified 10 session events, 27 telemetry records, latest player counters and sampled performance against source files. This is a small functional capture, not a high-load or visual playback proof. Originals and ready markers were preserved. No private captures are committed.
+
+## Interactive local gameplay proof — 2026-11-02
+
+A real Arland Workbench session was captured using production Lobby2 collectors.
+The user performed the shooting and additional movement; optional test controls
+arranged initial walking/stance transitions and a native AI target. No production
+Lobby2 changes were needed. An exploratory firing helper did not produce a shot
+and was removed; attempted commands were not counted as successful gameplay.
+
+Main mission: `01a19d23-b7fd-8dbd-8400-000000531b11`.
+Recording: `01a19d23-ffa0-88cc-8400-0000005602c8`.
+Server: `01a17ddf-a453-8e07-8400-00000044d8c3`.
+
+The local website database received 59 published batches: 4 statistics, 26 session,
+7 history and 22 telemetry. Every receipt is projected. Final player counters:
+59 shots, 3 AI kills, 117.4885 metres walked. Telemetry contains 495 records:
+374 states, 59 shots, 26 damage, 3 deaths, 7 spawns, 9 equipment, 7 seat and
+10 appearance events; states include standing, crouching and prone.
+
+The recording is closed, contiguous and complete with zero dropped records.
+The website runtime database role successfully read its summary and all 495
+records through the production paginated Recordings.Range implementation. Counts
+and record types match decoded original L2TB files. This is a functional embedded
+Workbench proof, not dedicated-server/multiplayer load or visual playback proof.
+
+Only this session's files were copied to a private intake directory. Delivery and
+projection ran once through the same production implementations used by the worker;
+a continuous worker/service was not installed. All 118 original payload/marker
+files remained unchanged. The local website now points to the private archive.
+The earlier automated diagnostic session was also imported separately (64 batches).
+
+To inspect: sign in with Developer access, open Administration, choose Database
+tables > mission players for final counters, session events for event details, or
+open the recording from Latest batches to read bounded telemetry windows. Match
+rows using the mission/recording IDs above. Current pagination is across all data.
+
+For another manual capture: start the Lobby2 scenario, select a slot and enter the
+game, enable telemetry with authenticated server-admin access, perform the actions,
+end the mission and disable telemetry, then stop Play so session/history close.
+Copy the completed session's four streams and server-id.txt into a private intake
+folder and run the configured delivery/projection worker against that copy. Do not
+point both old and new importers at the live Workbench output folders.

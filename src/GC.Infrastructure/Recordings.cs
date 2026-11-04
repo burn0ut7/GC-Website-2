@@ -72,8 +72,9 @@ public static class Recordings
     }
 
     public static async Task<object> Range(NpgsqlDataSource database, string archive, Guid server, Guid recording,
-        double from, double until, int afterSequence, int limit, CancellationToken token)
+        double from, double until, int afterSequence, int limit, CancellationToken token, string? type = null)
     {
+        if (type?.Length > 64) throw new ArgumentException("Invalid event type.");
         if (!double.IsFinite(from) || !double.IsFinite(until) || from < 0 || until < from || until - from > 60000 || afterSequence < 0 || limit is < 1 or > 500)
             throw new ArgumentException("Range must be at most 60 seconds with 1..500 records.");
         var chunks = new List<(string Name, string Hash, int Bytes, int LastSequence)>();
@@ -101,7 +102,7 @@ public static class Recordings
                 var sequence = record.GetProperty("sequence").GetInt32();
                 if (sequence <= afterSequence) continue;
                 var time = record.GetProperty("timeMs").GetDouble();
-                if (time >= from && time <= until)
+                if (time >= from && time <= until && (string.IsNullOrEmpty(type) || record.GetProperty("type").GetString() == type))
                 {
                     var bytes = Encoding.UTF8.GetByteCount(record.GetRawText());
                     if (records.Count >= limit || responseBytes + bytes > 2 * 1024 * 1024)

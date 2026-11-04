@@ -1,0 +1,54 @@
+{
+  "bounds": [
+    0,
+    0,
+    4096,
+    4096
+  ],
+  "pixels": 4096,
+  "heightSpacing": 8,
+  "counts": {
+    "trees": 73565,
+    "bushes": 44495,
+    "rocks": 33689
+  },
+  "heightsSha256": "06fe1eb785f8661a638a2c86b7b2bd4065554383c3818a6b0507ef82c4447da1",
+  "scenerySha256": "5c919bbeaeffa19bc28f5ee975a2706ddac0e66ad523803197259ea6d4667908",
+  "footprint": "world-AABB ellipse; alpha overlap; static snapshot; submerged tops fade exponentially over 2m using live water height",
+  "ground": "installed Arland supertexture; repeated 4px borders removed; 4m linear-light color averages; neutral hillshade; lossless WebP",
+  "waterDepthStops": [
+    0,
+    2,
+    8,
+    30,
+    100
+  ],
+  "waterColors": [
+    [
+      172,
+      226,
+      235
+    ],
+    [
+      115,
+      195,
+      214
+    ],
+    [
+      65,
+      142,
+      179
+    ],
+    [
+      35,
+      88,
+      130
+    ],
+    [
+      20,
+      49,
+      83
+    ]
+  ],
+  "groundSha256": "4c1592faa64f03ee429870790ddf3424a5f25d17fa3c58f856cf83a1872c21dc"
+}

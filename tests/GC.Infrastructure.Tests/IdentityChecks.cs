@@ -16,7 +16,17 @@ using Npgsql;
 
 internal static class IdentityChecks
 {
-    public static async Task Run(NpgsqlDataSource database)
+    private static async Task CheckNavigation(HttpClient client, bool account, bool admin)
+    {
+        using var response = await client.GetAsync("/api/navigation");
+        response.EnsureSuccessStatusCode();
+        using var data = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var paths = data.RootElement.EnumerateArray().Select(x => x.GetProperty("href").GetString()).ToArray();
+        if (!paths.Contains("/") || paths.Contains("/account.html") != account || paths.Contains("/admin") != admin
+            || !paths.Contains("/aar") || paths.Intersect(new[] { "/missions", "/players", "/sessions", "/playback", "/admin/data" }).Any()
+            || response.Headers.CacheControl?.NoStore != true) throw new Exception("Navigation permission filtering failed");
+    }
+    public static async Task Run(NpgsqlDataSource database, bool steamOnly = false)
     {
         var keys = Path.Combine(Path.GetTempPath(), "gc-auth-test-" + Guid.NewGuid().ToString("N"));
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
@@ -34,7 +44,13 @@ internal static class IdentityChecks
         });
         builder.Services.AddSingleton(database);
         Identity.Configure(builder);
+        var roleClock = new DiscordRoleChecks.Clock();
+        builder.Services.AddSingleton(sp => new DiscordDeveloperAccess(builder.Configuration, sp.GetRequiredService<IHttpClientFactory>(), roleClock));
         var provider = new DiscordStub();
+        var steamProvider = new SteamStub();
+        var patreonProvider = new PatreonStub();
+        builder.Services.AddHttpClient("patreon").ConfigurePrimaryHttpMessageHandler(() => patreonProvider);
+        builder.Services.AddHttpClient("steam-openid").ConfigurePrimaryHttpMessageHandler(() => steamProvider);
         builder.Services.AddHttpClient("discord-roles").ConfigurePrimaryHttpMessageHandler(() => provider);
         builder.Services.PostConfigure<OAuthOptions>("discord", options => options.Backchannel = new HttpClient(provider));
         builder.Services.AddRateLimiter(options => options.AddConcurrencyLimiter("intake", limit => limit.PermitLimit = 2));
@@ -48,46 +64,115 @@ internal static class IdentityChecks
         try
         {
             var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+            app.Configuration["Steam:PublicOrigin"]="https://"+new Uri(address).Authority;
+            app.Configuration["Patreon:PublicOrigin"]=app.Configuration["Steam:PublicOrigin"];
+            app.Configuration["Patreon:ClientId"]="test-patreon";app.Configuration["Patreon:ClientSecret"]="test-patreon-secret";app.Configuration["Patreon:CampaignId"]="777";
             using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }) { BaseAddress = new Uri(address) };
             await Check(client, "/api/admin/data", 401);
+            await Login(client, "member", "/account.html");
+            await Login(client, "member", "/playback?mission=example");
+            await Check(client, "/api/admin/recordings", 401);
+            await Check(client, "/api/account/settings", 401);
+            await Check(client,"/api/account/patreon",401);
+            await Check(client, "/api/admin/accounts", 401);
+            await CheckNavigation(client, false, false);
             await Check(client, "/auth/discord/callback?code=admin&state=forged", 400);
             var member = await Login(client, "member");
             client.DefaultRequestHeaders.Add("Cookie", member);
+            await AccountSettingsChecks.Run(client);
+            await SteamChecks.Run(client,database,steamProvider);
+            using(var scope=app.Services.CreateScope()) await PatreonChecks.Run(client,database,patreonProvider,scope.ServiceProvider.GetRequiredService<PatreonConnections>());
+            if(steamOnly)return;
+            await CheckNavigation(client, true, false);
             await Check(client, "/api/admin/data", 403);
-            await Check(client, "/admin", 403);
+            foreach (var page in new[] { "/admin", "/admin/data", "/playback" })
+            {
+                using var denied = await client.GetAsync(page);
+                if (denied.StatusCode != HttpStatusCode.Redirect || denied.Headers.Location?.OriginalString != "/insufficient-permissions")
+                    throw new Exception("Missing permissions page for " + page);
+            }
+            using (var notice = await client.GetAsync("/insufficient-permissions"))
+                if (!notice.IsSuccessStatusCode || !(await notice.Content.ReadAsStringAsync()).Contains("Insufficient permissions"))
+                    throw new Exception("Insufficient permissions page missing");
+            await Check(client, "/api/admin/recordings", 403);
+            await Check(client, "/api/admin/accounts", 403);
+            await Check(client, "/api/admin/tables/users", 403);
             await Check(client, $"/api/admin/missions/{Guid.NewGuid()}", 403);
             await Check(client, $"/api/admin/recordings/{Guid.NewGuid()}/{Guid.NewGuid()}/records?fromMs=0&untilMs=1000", 403);
             client.DefaultRequestHeaders.Remove("Cookie");
             var administrator = await Login(client, "admin");
             client.DefaultRequestHeaders.Add("Cookie", administrator);
+            using(var settings=JsonDocument.Parse(await client.GetStringAsync("/api/account/settings")))
+                if(settings.RootElement.GetProperty("videoVolume").GetInt32()!=25)throw new Exception("Preferences leaked across accounts");
             using var me = JsonDocument.Parse(await client.GetStringAsync("/api/me"));
             var account = me.RootElement.GetProperty("id").GetGuid();
             if (!me.RootElement.GetProperty("isAdmin").GetBoolean() || me.RootElement.GetProperty("discordId").GetString() != "222222222222222222")
                 throw new Exception("Verified Discord account not reflected in profile");
             await Check(client, "/api/admin/data", 200);
             await Check(client, "/admin", 200);
+            await Check(client, "/playback", 200);
+            await Check(client, "/api/admin/recordings", 200);
+            await Check(client, "/api/admin/recordings?offset=-1", 400);
+            await using (var seed = database.CreateCommand("""
+                INSERT INTO gc.telemetry_batches(server_id,recording_id,mission_id,revision,header,from_ms,until_ms,record_count,first_sequence,closed,dropped_records,type_counts,spawned_entities)
+                SELECT '00000000-0000-0000-0000-000000000001'::uuid,gen_random_uuid(),gen_random_uuid(),0,
+                    '{"world":"test-world","startedAt":1793637726}',0,1000,10,1,true,0,'{}','{}'
+                FROM generate_series(1,51)
+                """)) await seed.ExecuteNonQueryAsync();
+            using (var page = JsonDocument.Parse(await client.GetStringAsync("/api/admin/recordings")))
+            {
+                var rows = page.RootElement.GetProperty("recordings");
+                if (rows.GetArrayLength() != 50 || page.RootElement.GetProperty("nextOffset").GetInt32() != 50
+                    || rows[0].GetProperty("recordCount").GetInt64() != 10 || rows[0].GetProperty("world").GetString() != "test-world")
+                    throw new Exception("Playback recording directory fields/pagination failed");
+            }
+            using (var page = JsonDocument.Parse(await client.GetStringAsync("/api/admin/recordings?offset=50")))
+                if (page.RootElement.GetProperty("recordings").GetArrayLength() != 1 || page.RootElement.GetProperty("nextOffset").ValueKind != JsonValueKind.Null)
+                    throw new Exception("Playback final directory page failed");
+            Console.WriteLine("PASS: Playback page and recording directory enforce Developer access and pagination");
+            await Check(client, "/api/admin/accounts", 200);
+            await Check(client, "/api/admin/accounts?offset=-1", 400);
+            await Check(client, "/api/admin/tables/users", 200);
+            await Check(client, "/api/admin/tables/not_allowed", 404);
+            using(var accounts=JsonDocument.Parse(await client.GetStringAsync("/api/admin/accounts")))
+                if(accounts.RootElement.GetProperty("accounts").GetArrayLength()<2)throw new Exception("Admin accounts list missing identities");
+            await using(var seed=database.CreateCommand("INSERT INTO gc.users(id) SELECT gen_random_uuid() FROM generate_series(1,51)")) await seed.ExecuteNonQueryAsync();
+            using(var page=JsonDocument.Parse(await client.GetStringAsync("/api/admin/accounts")))
+                if(page.RootElement.GetProperty("accounts").GetArrayLength()!=50 || page.RootElement.GetProperty("nextOffset").GetInt32()!=50)throw new Exception("Account pagination failed");
+            using(var page=JsonDocument.Parse(await client.GetStringAsync("/api/admin/tables/users?offset=50")))
+                if(page.RootElement.GetProperty("rows").GetArrayLength()==0)throw new Exception("Table pagination failed");
+            Console.WriteLine("PASS: Admin account directory and table browser enforce access, allowlists and pagination");
             await Check(client, $"/api/admin/recordings/{Guid.NewGuid()}/{Guid.NewGuid()}", 404);
+            await CheckNavigation(client, true, true);
             provider.Developer = false;
+            roleClock.Now += TimeSpan.FromMinutes(1);
+            await CheckNavigation(client, true, false);
             await Check(client, "/api/admin/data", 403);
             provider.Developer = true;
+            roleClock.Now += TimeSpan.FromMinutes(1);
             await Check(client, "/api/admin/data", 200);
             foreach(var failure in new[]{HttpStatusCode.NotFound,HttpStatusCode.Forbidden,HttpStatusCode.ServiceUnavailable})
             {
                 provider.RoleStatus=failure;
+                roleClock.Now += TimeSpan.FromMinutes(1);
                 await Check(client, "/api/admin/data", 403);
                 await Check(client, "/api/me", 200); // Provider trouble must not break ordinary login.
             }
             provider.RoleStatus=HttpStatusCode.OK;
             provider.MalformedRoles=true;
+            roleClock.Now += TimeSpan.FromMinutes(1);
             await Check(client, "/api/admin/data", 403);
             provider.MalformedRoles=false;
             provider.WrongIdentity=true;
+            roleClock.Now += TimeSpan.FromMinutes(1);
             await Check(client, "/api/admin/data", 403);
             provider.WrongIdentity=false;
             provider.Unavailable=true;
+            roleClock.Now += TimeSpan.FromMinutes(1);
             await Check(client,"/api/admin/data",403);
             provider.Unavailable=false;
             provider.Oversized=true;
+            roleClock.Now += TimeSpan.FromMinutes(1);
             await Check(client,"/api/admin/data",403);
             provider.Oversized=false;
             builder.Configuration["Discord:DeveloperRoleId"]="666666666666666666";
@@ -121,12 +206,16 @@ internal static class IdentityChecks
             using var firstMe = JsonDocument.Parse(await client.GetStringAsync("/api/me"));
             client.DefaultRequestHeaders.Remove("Cookie"); provider.Name = "Renamed member";
             var second = await Login(client, "member"); client.DefaultRequestHeaders.Add("Cookie", second);
+            using(var settings=JsonDocument.Parse(await client.GetStringAsync("/api/account/settings")))
+                if(settings.RootElement.GetProperty("videoVolume").GetInt32()!=37)throw new Exception("Preferences lost after sign-in");
             using var secondMe = JsonDocument.Parse(await client.GetStringAsync("/api/me"));
             if (firstMe.RootElement.GetProperty("id").GetGuid() != secondMe.RootElement.GetProperty("id").GetGuid() ||
                 secondMe.RootElement.GetProperty("name").GetString() != "Renamed member") throw new Exception("Discord re-login identity drift");
             provider.MemberDeveloper=true;
+            roleClock.Now += TimeSpan.FromMinutes(1);
             await Check(client,"/api/admin/data",200); // Role grant works for another account without a website allowlist.
             provider.RoleStatus=HttpStatusCode.TooManyRequests;
+            roleClock.Now += TimeSpan.FromMinutes(1);
             await Check(client,"/api/admin/data",403);
             var calls=provider.RoleCalls;
             provider.RoleStatus=HttpStatusCode.OK;
@@ -143,9 +232,9 @@ internal static class IdentityChecks
         if ((int)response.StatusCode != expected) throw new Exception($"Auth check {path}: expected {expected}, got {(int)response.StatusCode}");
     }
 
-    private static async Task<string> Login(HttpClient client, string code)
+    private static async Task<string> Login(HttpClient client, string code, string page = "/auth/discord")
     {
-        using var start = await client.GetAsync("/auth/discord");
+        using var start = await client.GetAsync(page);
         var location = start.Headers.Location ?? throw new Exception("Missing Discord redirect");
         var query = QueryHelpers.ParseQuery(location.Query);
         if (location.Host != "discord.com" || query["scope"] != "identify" || query["code_challenge_method"] != "S256")
@@ -154,7 +243,7 @@ internal static class IdentityChecks
         using var request = new HttpRequestMessage(HttpMethod.Get, "/auth/discord/callback?code=" + code + "&state=" + Uri.EscapeDataString(query["state"].ToString()) + "&iss=https%3A%2F%2Fdiscord.com");
         request.Headers.Add("Cookie", correlation);
         using var response = await client.SendAsync(request);
-        if (response.StatusCode != HttpStatusCode.Redirect || response.Headers.Location?.OriginalString != "/account.html")
+        if (response.StatusCode != HttpStatusCode.Redirect || response.Headers.Location?.OriginalString != (page == "/auth/discord" ? "/account.html" : page))
             throw new Exception("OAuth callback failed: " + await response.Content.ReadAsStringAsync());
         var cookie = response.Headers.GetValues("Set-Cookie").Single(x => x.StartsWith("__Host-GC.Session="));
         if (!cookie.Contains("secure", StringComparison.OrdinalIgnoreCase) || !cookie.Contains("httponly", StringComparison.OrdinalIgnoreCase))

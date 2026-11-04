@@ -99,12 +99,20 @@ public static class MissionProjection
                 await using(var remove=Command(work,"DELETE FROM gc.mission_players WHERE server_id=$1 AND mission_id=$2",work.Server,batch.Id))await remove.ExecuteNonQueryAsync(token);
                 foreach(var player in root.GetProperty("players").EnumerateArray())
                 {
-                    // Optional counters remain absent, not invented zeroes; detailed assignments stay in the source archive.
+                    if (player.TryGetProperty("steamId", out var steam))
+                    {
+                        if (steam.ValueKind != JsonValueKind.String) throw new InvalidDataException("Invalid Steam ID.");
+                        if (!string.IsNullOrEmpty(steam.GetString()))
+                            await SteamAccounts.Observe(work.Connection,work.Transaction,work.Server,batch.Id,
+                                player.GetProperty("identity").GetString()!,steam.GetString()!,token);
+                    }
+                    // Optional counters remain absent, not invented zeroes.
                     var counterNames=new[]{"playSeconds","walkMetres","driveMetres","pilotMetres","radioSecondsClientReported","shots","grenades","bandagesOthers","kills","deaths","commanderMissions","leaderMissions","teamKills","aiKills","deathsByPlayers","deathsByAI"};
                     var counters=JsonSerializer.Serialize(player.EnumerateObject().Where(p=>counterNames.Contains(p.Name,StringComparer.Ordinal))
                         .ToDictionary(p=>p.Name,p=>p.Value));
-                    await using var insert=Command(work,"INSERT INTO gc.mission_players(server_id,mission_id,revision,identity,name,counters) VALUES($1,$2,$3,$4,$5,$6)",
-                        work.Server,batch.Id,batch.Revision,player.GetProperty("identity").GetString()!,player.GetProperty("name").GetString()!,counters);
+                    var details=JsonSerializer.Serialize(player.EnumerateObject().Where(p=>p.Name is "assignments" or "roles").ToDictionary(p=>p.Name,p=>p.Value));
+                    await using var insert=Command(work,"INSERT INTO gc.mission_players(server_id,mission_id,revision,identity,name,counters,details) VALUES($1,$2,$3,$4,$5,$6,$7::jsonb)",
+                        work.Server,batch.Id,batch.Revision,player.GetProperty("identity").GetString()!,player.GetProperty("name").GetString()!,counters,details);
                     await insert.ExecuteNonQueryAsync(token);
                 }
             }

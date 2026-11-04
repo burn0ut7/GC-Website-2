@@ -1,0 +1,18 @@
+{
+  "name": "Anizay",
+  "slug": "anizay",
+  "worldSuffix": "worlds/playback/anizay_playback.ent",
+  "bounds": [
+    0,
+    0,
+    10240,
+    10240
+  ],
+  "calibration": "Live SCR_MapEntity: size 10240 x 339.469 x 10240; offset 0 x 15.1562 x 0 (2026-11-02). X/Z zero-origin bounds verified.",
+  "topography": "Worlds/Gamemaster/GM_Anizay.topo",
+  "topographySha256": "8959828118ef2fd7f403434a206f21a8c6235509d9cdfdd29cdb465be92f97d6",
+  "raster": "Data/UI/Textures/Map/Worlds/anizay_ras.edds",
+  "tilePrefix": "Worlds/Anizay/.Data/Anizay_",
+  "tileCount": 1600,
+  "tileColumns": 40
+}

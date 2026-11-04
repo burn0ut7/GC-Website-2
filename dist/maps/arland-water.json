@@ -1,0 +1,53 @@
+{
+  "samples": 29059,
+  "measuredWetSamples": 11727,
+  "visibleProbeSamples": 11726,
+  "waterPixels": 10407012,
+  "types": {
+    "2": 7771,
+    "3": 3665,
+    "1": 290
+  },
+  "heightsSha256": "06fe1eb785f8661a638a2c86b7b2bd4065554383c3818a6b0507ef82c4447da1",
+  "sourceSha256": "6248c7575709345069e883329d63c1248475c43c83c09604e0748e9551f4843c",
+  "detailSha256": "14cf7cb782e899168436b6b22a608bff680154419079b37a0a531d1d6a31faa2",
+  "depthStops": [
+    0,
+    2,
+    8,
+    30,
+    100
+  ],
+  "colors": [
+    [
+      172,
+      226,
+      235
+    ],
+    [
+      115,
+      195,
+      214
+    ],
+    [
+      65,
+      142,
+      179
+    ],
+    [
+      35,
+      88,
+      130
+    ],
+    [
+      20,
+      49,
+      83
+    ]
+  ],
+  "depthRange": [
+    0.0,
+    255.50875854492188
+  ],
+  "source": "Unified coverage: live 1m inland depth samples and 8m ocean height grid; vertex-aligned bicubic terrain; 1.2m Gaussian coverage and normalized depth smoothing; dry banks excluded before smoothing"
+}

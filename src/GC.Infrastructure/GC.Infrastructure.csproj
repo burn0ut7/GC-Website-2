@@ -7,8 +7,10 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Lobby2.Contracts" Version="1.0.0" />
+    <PackageReference Include="Lobby2.Contracts" Version="1.1.2" />
     <PackageReference Include="Npgsql" Version="10.0.3" />
     <EmbeddedResource Include="Migrations/*.sql" />
   </ItemGroup>
 </Project>
+
+

@@ -1,0 +1,494 @@
+{
+  "version": 1,
+  "styles": {
+    "MDT_CHURCH": {
+      "quad": "church",
+      "size": 34,
+      "color": [
+        0.791,
+        0.791,
+        0.791,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 3,
+      "url": "/icons/reforger/topo-MDT_CHURCH.png"
+    },
+    "MDT_LIGHTHOUSE": {
+      "quad": "lighthouse",
+      "size": 30,
+      "color": [
+        0.791,
+        0.791,
+        0.791,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 3,
+      "url": "/icons/reforger/topo-MDT_LIGHTHOUSE.png"
+    },
+    "MDT_BUSH": {
+      "quad": "single-bush",
+      "size": 28,
+      "color": [
+        0.328,
+        0.462,
+        0.175,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 1,
+      "url": "/icons/reforger/topo-MDT_BUSH.png"
+    },
+    "MDT_CHAPEL": {
+      "quad": "chapel",
+      "size": 48,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_CHAPEL.png"
+    },
+    "MDT_CROSS": {
+      "quad": "calvary",
+      "size": 32,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_CROSS.png"
+    },
+    "MDT_BUNKER": {
+      "quad": "bunker",
+      "size": 40,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": true,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_BUNKER.png"
+    },
+    "MDT_FOUNTAIN": {
+      "quad": "water-reservoir",
+      "size": 32,
+      "color": [
+        0.0,
+        0.168,
+        0.503,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_FOUNTAIN.png"
+    },
+    "MDT_QUAY": {
+      "quad": "anchorage",
+      "size": 32,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 0,
+      "url": "/icons/reforger/topo-MDT_QUAY.png"
+    },
+    "MDT_FUELSTATION": {
+      "quad": "fuel-station",
+      "size": 34,
+      "color": [
+        0.791,
+        0.791,
+        0.791,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 3,
+      "url": "/icons/reforger/topo-MDT_FUELSTATION.png"
+    },
+    "MDT_HOSPITAL": {
+      "quad": "hospital",
+      "size": 32,
+      "color": [
+        0.855,
+        0.012,
+        0.018,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 3,
+      "url": "/icons/reforger/topo-MDT_HOSPITAL.png"
+    },
+    "MDT_BUSSTOP": {
+      "quad": "bus-stop",
+      "size": 29,
+      "color": [
+        0.855,
+        0.012,
+        0.018,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_BUSSTOP.png"
+    },
+    "MDT_TRANSMITTER": {
+      "quad": "telecommunication-tower",
+      "size": 28,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 3,
+      "url": "/icons/reforger/topo-MDT_TRANSMITTER.png"
+    },
+    "MDT_STACK": {
+      "quad": "smoke-stack",
+      "size": 28,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_STACK.png"
+    },
+    "MDT_WATERTOWER": {
+      "quad": "water-tower",
+      "size": 30,
+      "color": [
+        0.0,
+        0.168,
+        0.503,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_WATERTOWER.png"
+    },
+    "MDT_FORTRESS": {
+      "quad": "ancient-fortification",
+      "size": 32,
+      "color": [
+        0.855,
+        0.012,
+        0.018,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_FORTRESS.png"
+    },
+    "MDT_HILL": {
+      "quad": "hill-marker",
+      "size": 32,
+      "color": [
+        0.061,
+        0.061,
+        0.061,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 3,
+      "url": "/icons/reforger/topo-MDT_HILL.png"
+    },
+    "MDT_ROCKS": {
+      "quad": "rocks",
+      "size": 30,
+      "color": [
+        0.127,
+        0.127,
+        0.127,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 3,
+      "url": "/icons/reforger/topo-MDT_ROCKS.png"
+    },
+    "MDT_PUB": {
+      "quad": "pub",
+      "size": 34,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 3,
+      "url": "/icons/reforger/topo-MDT_PUB.png"
+    },
+    "MDT_CALVARY": {
+      "quad": "calvary",
+      "size": 28,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_CALVARY.png"
+    },
+    "MDT_CRANE": {
+      "quad": "crane",
+      "size": 32,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_CRANE.png"
+    },
+    "MDT_TRANSFORMER": {
+      "quad": "transformer",
+      "size": 34,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_TRANSFORMER.png"
+    },
+    "MDT_ROCK": {
+      "quad": "rocks",
+      "size": 30,
+      "color": [
+        0.127,
+        0.127,
+        0.127,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_ROCK.png"
+    },
+    "MDT_AIRPORT": {
+      "quad": "airport",
+      "size": 32,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 5,
+      "url": "/icons/reforger/topo-MDT_AIRPORT.png"
+    },
+    "MDT_FORESTERLODGE": {
+      "quad": "forest-lodge",
+      "size": 32,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_FORESTERLODGE.png"
+    },
+    "MDT_TOWER": {
+      "quad": "tower",
+      "size": 30,
+      "color": [
+        0.001,
+        0.001,
+        0.001,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_TOWER.png"
+    },
+    "MDT_SPRING": {
+      "quad": "spring",
+      "size": 40,
+      "color": [
+        0.0,
+        0.168,
+        0.503,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_SPRING.png"
+    },
+    "MDT_BUOY": {
+      "quad": "buoy",
+      "size": 48,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_BUOY.png"
+    },
+    "MDT_LIGHT": {
+      "quad": "light-coastal",
+      "size": 32,
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_LIGHT.png"
+    },
+    "MDT_HOTEL": {
+      "quad": "hotel",
+      "size": 34,
+      "color": [
+        0.013,
+        0.013,
+        0.013,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 3,
+      "url": "/icons/reforger/topo-MDT_HOTEL.png"
+    },
+    "MDT_PARKING": {
+      "quad": "parking-place",
+      "size": 48,
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_PARKING.png"
+    },
+    "MDT_PLAYINGFIELD": {
+      "quad": "playing-field",
+      "size": 30,
+      "color": [
+        0.591,
+        0.708,
+        0.434,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_PLAYINGFIELD.png"
+    },
+    "MDT_BUSSTATION": {
+      "quad": "bus-station",
+      "size": 32,
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_BUSSTATION.png"
+    },
+    "MDT_VIEWTOWER": {
+      "quad": "lookout-tower",
+      "size": 20,
+      "color": [
+        0.001,
+        0.001,
+        0.001,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_VIEWTOWER.png"
+    },
+    "MDT_SMALLTREE": {
+      "quad": "single-tree",
+      "size": 32,
+      "color": [
+        0.328,
+        0.462,
+        0.175,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 1,
+      "url": "/icons/reforger/topo-MDT_SMALLTREE.png"
+    },
+    "MDT_WATERPUMP": {
+      "quad": "water-reservoir",
+      "size": 24,
+      "color": [
+        0.0,
+        0.168,
+        0.503,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_WATERPUMP.png"
+    },
+    "MDT_VIEWPOINT": {
+      "quad": "view-point",
+      "size": 32,
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 2,
+      "url": "/icons/reforger/topo-MDT_VIEWPOINT.png"
+    },
+    "MDT_UNIT": {
+      "quad": "crane",
+      "size": 32,
+      "color": [
+        0.886,
+        0.655,
+        0.314,
+        1.0
+      ],
+      "rotate": false,
+      "viewLayer": 6,
+      "url": "/icons/reforger/topo-MDT_UNIT.png"
+    }
+  },
+  "symbols": [],
+  "unmapped": {},
+  "sourceHashes": {
+    "MapDescriptorDefaults.conf": "e885b63cc9aedd31203a4b5c648274c13fb9d5892f839fba5dcc819ab87a6c97",
+    "MapDescriptorVisibilityDefault.conf": "50f7197efafb9ea55bec3d1df1c1016d690a242d5c064dc83f12ee4539d36453",
+    "icons_topographic_map.imageset": "b617e5b576e726767d7ae0c198d90f81418a50c108f36198e3d9ab05d33adee9",
+    "topographic.dds": "0f3245e32f7bbbb2a9ededfeae9716ea900f08c54e5ced0a263716123b13ea17"
+  }
+}

@@ -1,0 +1,210 @@
+{
+  "version": 1,
+  "source": "Live Arland MapDescriptorComponent / MapItem.GetDisplayName; game 1.8.0.13; 2026-11-02",
+  "sha256": "6af5a8ee74ac4673a87fec0ab6d09dd98a4c9e311a20867e07108108ee66188a",
+  "labels": [
+    {
+      "name": "harbor",
+      "x": 3386.2,
+      "z": 2973.09,
+      "category": "place",
+      "type": "GENERIC"
+    },
+    {
+      "name": "Widow's Hook",
+      "x": 3148.03,
+      "z": 3355.25,
+      "category": "landscape",
+      "type": "LOCAL"
+    },
+    {
+      "name": "Beauregard Bay",
+      "x": 3265.95,
+      "z": 3198.08,
+      "category": "landscape",
+      "type": "SEA_MINOR"
+    },
+    {
+      "name": "Beauregard",
+      "x": 3165.96,
+      "z": 2800.03,
+      "category": "town",
+      "type": "CITY"
+    },
+    {
+      "name": "Wick Point",
+      "x": 3664.54,
+      "z": 2720.95,
+      "category": "landscape",
+      "type": "LOCAL"
+    },
+    {
+      "name": "Arleville Heights",
+      "x": 3184.54,
+      "z": 1603.96,
+      "category": "landscape",
+      "type": "LOCAL"
+    },
+    {
+      "name": "harbor",
+      "x": 3211.26,
+      "z": 1124.03,
+      "category": "place",
+      "type": "GENERIC"
+    },
+    {
+      "name": "Timber Ridge",
+      "x": 2630.07,
+      "z": 2593.05,
+      "category": "landscape",
+      "type": "RIDGE"
+    },
+    {
+      "name": "Signal Hill",
+      "x": 2508.91,
+      "z": 2260.84,
+      "category": "landscape",
+      "type": "HILL"
+    },
+    {
+      "name": "Sandbank",
+      "x": 2329.98,
+      "z": 3222.96,
+      "category": "landscape",
+      "type": "LOCAL"
+    },
+    {
+      "name": "Arleville",
+      "x": 2776.83,
+      "z": 1623.51,
+      "category": "town",
+      "type": "CITY"
+    },
+    {
+      "name": "Highfield",
+      "x": 2530.35,
+      "z": 1838.01,
+      "category": "landscape",
+      "type": "LOCAL"
+    },
+    {
+      "name": "Moss Hill",
+      "x": 2383.37,
+      "z": 1298.61,
+      "category": "landscape",
+      "type": "HILL"
+    },
+    {
+      "name": "North Head",
+      "x": 1852.71,
+      "z": 3346.85,
+      "category": "landscape",
+      "type": "LOCAL"
+    },
+    {
+      "name": "Newfield",
+      "x": 1932.59,
+      "z": 2889.9,
+      "category": "landscape",
+      "type": "LOCAL"
+    },
+    {
+      "name": "Heifer Pond",
+      "x": 1948.85,
+      "z": 2656.02,
+      "category": "landscape",
+      "type": "WATER_MINOR"
+    },
+    {
+      "name": "Black Pond",
+      "x": 1688.23,
+      "z": 2034.16,
+      "category": "landscape",
+      "type": "WATER_MINOR"
+    },
+    {
+      "name": "Bald Ridge",
+      "x": 1772.03,
+      "z": 1142.95,
+      "category": "landscape",
+      "type": "RIDGE"
+    },
+    {
+      "name": "military site",
+      "x": 1365.98,
+      "z": 2939.97,
+      "category": "place",
+      "type": "GENERIC"
+    },
+    {
+      "name": "Adder Hill",
+      "x": 1209.74,
+      "z": 3435.76,
+      "category": "landscape",
+      "type": "HILL"
+    },
+    {
+      "name": "harbor",
+      "x": 1029.17,
+      "z": 3325.67,
+      "category": "place",
+      "type": "GENERIC"
+    },
+    {
+      "name": "Heath Point",
+      "x": 860.114,
+      "z": 3527.04,
+      "category": "landscape",
+      "type": "LOCAL"
+    },
+    {
+      "name": "Heather Bay",
+      "x": 605.772,
+      "z": 3296.31,
+      "category": "landscape",
+      "type": "SEA_MINOR"
+    },
+    {
+      "name": "military site",
+      "x": 1388.65,
+      "z": 2376.84,
+      "category": "place",
+      "type": "GENERIC"
+    },
+    {
+      "name": "Angler Bluff",
+      "x": 1299.97,
+      "z": 1923.98,
+      "category": "landscape",
+      "type": "LOCAL"
+    },
+    {
+      "name": "military site",
+      "x": 1413.23,
+      "z": 1836.11,
+      "category": "place",
+      "type": "GENERIC"
+    },
+    {
+      "name": "Gull Bay",
+      "x": 1370.21,
+      "z": 1590.42,
+      "category": "landscape",
+      "type": "SEA_MINOR"
+    },
+    {
+      "name": "Rookery Point",
+      "x": 1134.06,
+      "z": 1168.29,
+      "category": "landscape",
+      "type": "LOCAL"
+    },
+    {
+      "name": "Gull Island",
+      "x": 834.552,
+      "z": 1461.68,
+      "category": "landscape",
+      "type": "ISLAND"
+    }
+  ]
+}

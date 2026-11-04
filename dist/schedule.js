@@ -34,7 +34,7 @@ function upcomingSessions(now = new Date()) {
  }).sort((a, b) => a - b);
 }
 
-function sessionDisplay(now = new Date(), zone) {
+function sessionDisplay(now = new Date(), zone, clockFormat = 'auto') {
  const sessions = upcomingSessions(now);
  let detected = zone;
  try {
@@ -44,20 +44,22 @@ function sessionDisplay(now = new Date(), zone) {
  } catch { detected = null; }
  const timeZone = detected || 'UTC';
  const dayFormat = new Intl.DateTimeFormat('en', { timeZone, weekday: 'long' });
- const timeFormat = new Intl.DateTimeFormat(undefined, { timeZone, hour: 'numeric', minute: '2-digit', ...(detected ? { timeZoneName: 'short' } : {}) });
+ const clock = clockFormat==='12h'?{hour12:true}:clockFormat==='24h'?{hourCycle:'h23'}:{};
+ const timeFormat = new Intl.DateTimeFormat(undefined, { timeZone, hour: 'numeric', minute: '2-digit', ...clock, ...(detected ? { timeZoneName: 'short' } : {}) });
  const rows = sessions.map(date => ({ day: dayFormat.format(date), time: timeFormat.format(date) }));
  const sameTime = rows[0].time === rows[1].time;
  return {
   days: sameTime ? rows.map(row => row.day).join(' & ') : 'Upcoming sessions',
   time: (sameTime ? rows[0].time : rows.map(row => `${row.day} ${row.time}`).join(' · ')) + (detected ? '' : ' UTC'),
   detail: sessions.map(date => new Intl.DateTimeFormat(undefined, {
-   timeZone, dateStyle: 'full', timeStyle: 'short'
+   timeZone, dateStyle: 'full', timeStyle: 'short', ...clock
   }).format(date)).join(' / ')
  };
 }
 
 function updateSessionTimes() {
- const display = sessionDisplay();
+ const preferences = window.gcPreferences;
+ const display = sessionDisplay(new Date(),preferences?.timeZone&&preferences.timeZone!=='local'?preferences.timeZone:undefined,preferences?.clockFormat);
  document.querySelectorAll('[data-session-days]').forEach(element => { element.textContent = display.days; });
  document.querySelectorAll('[data-session-time]').forEach(element => { element.textContent = display.time; element.title = display.detail; });
 }

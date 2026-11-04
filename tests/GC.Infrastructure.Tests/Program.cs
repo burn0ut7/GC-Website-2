@@ -2,6 +2,30 @@ using GC.Infrastructure;
 using Npgsql;
 using System.Diagnostics;
 
+if (args.Contains("--mission-metadata")) { MissionMetadataChecks.Run(); return; }
+if (Array.IndexOf(args,"--mission-source") is var sourceAt && sourceAt>=0)
+{
+    var count=0;var failures=0;
+    foreach(var file in Directory.EnumerateFiles(args[sourceAt+1],"*.conf",SearchOption.AllDirectories))
+    {
+        if(!File.Exists(file+".meta"))continue;
+        try{CatalogSync.Parse(file,File.ReadAllText(file),File.ReadAllText(file+".meta"),null,"source-check");count++;}
+        catch(Exception error){Console.WriteLine(Path.GetFileName(file)+": "+error.Message);failures++;}
+    }
+    Console.WriteLine($"Source headers accepted: {count}; rejected: {failures}");
+    if(failures>0)Environment.ExitCode=1;
+    return;
+}
+
+if (args.Contains("--account-roles")) { await AccountRoleChecks.Run(); return; }
+
+if (args.Contains("--voice")) { VoiceChecks.Run(); return; }
+if (args.Contains("--catalog")) { await CatalogChecks.Run(); return; }
+
+if (args.Contains("--explorer")) { await ExplorerChecks.Run(); return; }
+if (args.Contains("--discord-roles")) { await DiscordRoleChecks.Run(); return; }
+if (args.Contains("--map-packages")) { await MapPackageChecks.Run(); return; }
+
 var adminConnection = Environment.GetEnvironmentVariable("GC_TEST_ADMIN_CONNECTION")
     ?? throw new InvalidOperationException("Set GC_TEST_ADMIN_CONNECTION to a local PostgreSQL test administrator. Tests create and drop only a random gc_test_* database.");
 var name = "gc_test_" + Guid.NewGuid().ToString("N");
@@ -24,7 +48,8 @@ try
     Check(await Database.IsReady(database, default), "Fresh schema migration succeeds");
     var signIns = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => Accounts.SignInDiscord(database, "123456789012345678", "Test member", default)));
     Check(signIns.Distinct().Count() == 1, "Concurrent Discord sign-ins resolve to one GC account");
-    await IdentityChecks.Run(database);
+    await IdentityChecks.Run(database,args.Contains("--steam"));
+    if(args.Contains("--steam"))return;
     var web = Environment.GetEnvironmentVariable("GC_TEST_WEB_DLL");
     if (!string.IsNullOrWhiteSpace(web)) await ApiChecks.Run(web, settings.ConnectionString);
     var worker = Environment.GetEnvironmentVariable("GC_TEST_WORKER_DLL");

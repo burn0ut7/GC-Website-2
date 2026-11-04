@@ -12,8 +12,29 @@ namespace GC.Web;
 
 public static class Identity
 {
+    // Mark HTML routes explicitly. API clients must keep receiving HTTP 401/403.
+    internal sealed class ProtectedPage { }
+
+    private static IResult StartDiscord(HttpContext context, IConfiguration configuration, string destination)
+    {
+        if (!configuration.GetValue<bool>("Discord:Enabled"))
+            return Notice("Sign-in unavailable", "Discord sign-in is not configured.", 503);
+        if (!context.Request.IsHttps)
+            return Notice("Secure connection required", "Open the HTTPS website to sign in.", 400);
+        return Results.Challenge(new AuthenticationProperties { RedirectUri = destination }, ["discord"]);
+    }
+
+    private static IResult Notice(string title, string message, int status, bool retry = false) =>
+        Results.Content($"""
+        <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{title} · Global Conflicts</title><link rel="stylesheet" href="/account.css">
+        <main><h1>{title}</h1><p>{message}</p>{(retry ? "<p><a href='/auth/discord'>Try Discord sign-in again</a></p>" : "")}<a href="/">Back to Global Conflicts</a></main></html>
+        """, "text/html; charset=utf-8", statusCode: status);
+
     public static void Configure(WebApplicationBuilder builder)
     {
+        SteamLink.Configure(builder.Services);
+        PatreonLink.Configure(builder.Services);
         var authentication = builder.Services.AddAuthentication("gc-session").AddCookie("gc-session", options =>
         {
             options.Cookie.Name = "__Host-GC.Session";
@@ -22,13 +43,27 @@ public static class Identity
             options.Cookie.SameSite = SameSiteMode.Lax;
             options.ExpireTimeSpan = TimeSpan.FromHours(8);
             options.SlidingExpiration = false;
-            options.Events.OnRedirectToLogin = context => { context.Response.StatusCode = 401; return Task.CompletedTask; };
-            options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = 403; return Task.CompletedTask; };
+            options.Events.OnRedirectToLogin = context =>
+            {
+                if (context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<ProtectedPage>() is not null)
+                    return StartDiscord(context.HttpContext, builder.Configuration,
+                        context.Request.PathBase.Add(context.Request.Path).ToUriComponent() + context.Request.QueryString.ToUriComponent()).ExecuteAsync(context.HttpContext);
+                context.Response.StatusCode = 401;
+                return Task.CompletedTask;
+            };
+            options.Events.OnRedirectToAccessDenied = context =>
+            {
+                if (context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<ProtectedPage>() is not null)
+                    context.Response.Redirect(context.Request.PathBase + "/insufficient-permissions");
+                else context.Response.StatusCode = 403;
+                return Task.CompletedTask;
+            };
         });
         builder.Services.AddAuthorization(options => options.AddPolicy("administrator", policy =>
             policy.RequireAuthenticatedUser().AddRequirements(new AdministratorRequirement())));
         builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, AdministratorHandler>();
         builder.Services.AddSingleton<DiscordDeveloperAccess>();
+        builder.Services.AddSingleton<AccountRoles>();
         builder.Services.AddHttpClient("discord-roles", client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(3);
@@ -74,21 +109,30 @@ public static class Identity
             options.Events.OnRemoteFailure = context =>
             {
                 context.HandleResponse();
-                context.Response.StatusCode = 400;
-                return context.Response.WriteAsJsonAsync(new { error = "discord_sign_in_failed" });
+                var cause = context.Failure?.GetBaseException();
+                context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("DiscordSignIn")
+                    .LogWarning("Discord sign-in failed ({Cause}, trace {Trace})", cause?.GetType().Name, context.HttpContext.TraceIdentifier);
+                var databaseUnavailable = false;
+                for (var error = context.Failure; error is not null; error = error.InnerException)
+                    if (error is NpgsqlException) { databaseUnavailable = true; break; }
+                return Notice("Discord sign-in couldn’t finish", databaseUnavailable
+                    ? "The account database is unavailable. Please try again shortly."
+                    : "Please start sign-in again in this browser.", databaseUnavailable ? 503 : 400, true).ExecuteAsync(context.HttpContext);
             };
         });
     }
 
     public static void Map(WebApplication app)
     {
-        app.MapGet("/auth/discord", (HttpContext context) =>
-        {
-            if (!app.Configuration.GetValue<bool>("Discord:Enabled"))
-                return Results.Json(new { error = "discord_not_configured" }, statusCode: 503);
-            if (!context.Request.IsHttps) return Results.BadRequest(new { error = "https_required" });
-            return Results.Challenge(new AuthenticationProperties { RedirectUri = "/account.html" }, ["discord"]);
-        });
+        AccountSettingsRoutes.Map(app);
+        AccountRoles.Map(app);
+        SteamLink.Map(app);
+        PatreonLink.Map(app);
+        SiteNavigation.Map(app);
+        app.MapGet("/account.html", () => Results.File(Path.Combine(app.Environment.WebRootPath, "account.html"), "text/html"))
+            .WithMetadata(new ProtectedPage()).RequireAuthorization();
+        app.MapGet("/auth/discord", (HttpContext context) => StartDiscord(context, app.Configuration, context.Request.PathBase + "/account.html"));
+        app.MapGet("/insufficient-permissions", () => Notice("Insufficient permissions", "Your Discord account does not have access to this page.", 200));
         app.MapGet("/api/auth/status", (HttpContext context) =>
         {
             context.Response.Headers.CacheControl = "no-store";

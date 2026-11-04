@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Playback — Global Conflicts</title>
+    <link rel="stylesheet" href="/playback.css" />
+    <link rel="stylesheet" href="/navigation.css" />
+  </head>
+  <body class="field">
+    <header class="quiet-header">
+      <a class="quiet-brand" href="/">Global Conflicts</a><a href="/aar">After Action Report</a><span>Playback</span
+      ><a href="/account.html">Your account</a>
+    </header>
+    <main>
+      <section id="mapNotice" class="map-notice" role="status" hidden>
+        <strong id="mapNoticeTitle">Map background missing</strong>
+        <span id="mapNoticeText"></span>
+        <a id="mapNoticeAction" href="/admin#maps">Add map package →</a>
+      </section>
+      <div class="workspace">
+<aside id="filterPanel" class="filters" aria-label="Playback filters">
+<section class="recording-bar" aria-label="Recording selection">
+  <div id="recordingCalendar" class="recording-calendar" popover="auto" role="dialog" aria-label="Recording date"></div>
+  <div class="recording-heading"><label for="recording">Recording</label><span id="recordingLoading" class="recording-spinner" aria-label="Loading" role="status" hidden></span></div>
+  <div class="recording-row"><button id="calendarToggle" type="button" popovertarget="recordingCalendar" aria-label="Choose recording date" title="Choose recording date"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 11h18M7 15h3M14 15h3"/></svg></button><select id="recording"><option>Loading…</option></select><button id="reload" type="button" aria-label="Refresh recording" title="Refresh recording"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M19 11a7 7 0 0 0-12-4L4 10m16 4-3 3A7 7 0 0 1 5 13"/></svg></button></div>
+  <div id="recordingDate" class="recording-date"></div>
+  <button id="older" hidden>Older recordings</button>
+  <span id="status" class="recording-status" role="status">Loading recordings…</span>
+</section>
+<div class="filter-heading"><h1>Filters</h1><button id="resetFilters" type="button">Reset</button></div><fieldset><legend>Units</legend><label><input type="checkbox" id="players" checked /> Players</label>
+<label><input type="checkbox" id="ai" checked /> AI</label>
+<label><input type="checkbox" id="vehicles" checked /> Vehicles</label>
+<details  data-filter-section="factions"><summary>Factions</summary><div id="factions"></div></details>
+<details  data-filter-section="units"><summary>Individual units</summary><input type="search" id="search" maxlength="120" placeholder="Search units" aria-label="Search units" /><div class="actions"><button id="all">Select all</button><button id="none">Clear</button></div><div id="actors" class="actors"></div></details>
+</fieldset><details open data-filter-section="display"><summary>Display</summary><label><input type="checkbox" id="labels" checked /> Unit names</label>
+<label><input type="checkbox" id="showActorIcons" checked /> Unit icons</label>
+<label><input type="checkbox" id="worldScaleUnits" checked /> World-scale units</label>
+<label><input type="checkbox" id="facing" checked /> Facing direction</label>
+<label><input type="checkbox" id="trails" checked /> Trails · 3 seconds</label>
+<label><input type="checkbox" id="shots" checked /> Gunfire</label>
+<label><input type="checkbox" id="dead" checked /> Dead units</label>
+<label><input type="checkbox" id="timelineCombat" checked /> Timeline kills &amp; deaths</label>
+</details>
+<details  data-filter-section="map"><summary>Map</summary><label><input type="checkbox" id="annotations" checked /> Mission markers &amp; areas</label>
+<label for="mapFaction">Markers visible to</label><select id="mapFaction"><option value="">Everyone</option></select><label><input type="checkbox" id="terrainLabels" checked /> Place names</label>
+<label><input type="checkbox" id="terrainSymbols" checked /> Landmarks</label>
+<label><input type="checkbox" id="terrainContours" checked /> Contour lines</label>
+<details  data-filter-section="terrain"><summary>Terrain layers</summary><label><input type="checkbox" id="terrainRelief" checked /> Terrain shading</label>
+<label><input type="checkbox" id="vegetation" checked /> Trees &amp; bushes</label>
+<label><input type="checkbox" id="terrainRocks" checked /> Rocks</label>
+<label><input type="checkbox" id="terrainWater" checked /> Inland water</label>
+<label><input type="checkbox" id="terrainRoads" checked /> Roads</label>
+<label><input type="checkbox" id="terrainBuildings" checked /> Buildings &amp; walls</label>
+<label><input type="checkbox" id="terrainPower" checked /> Power lines</label>
+<label for="sceneryOpacity">Scenery opacity</label><input id="sceneryOpacity" type="range" min="0" max="100" value="100" /></details>
+</details>
+<details  data-filter-section="recording"><summary>Recording details</summary><pre id="statistics"></pre><details  data-filter-section="coverage"><summary>Data coverage</summary><p id="shotCoverage"></p><p id="mapCoverage"></p><p id="symbolCoverage"></p><p id="labelCoverage"></p><p id="naturalCoverage"></p><p id="terrainCoverage"></p><p id="contourKey"></p><pre id="coverage"></pre></details>
+</details>
+</aside>
+        <section class="map-panel" aria-label="2D playback map">
+          <div class="map-toolbar">
+
+          <div class="map-actions">
+            
+            
+            <button id="fit">Fit recording</button
+            ><button id="whole">Full map</button
+            ><button id="zoomIn" aria-label="Zoom in">+</button
+            ><button id="zoomOut" aria-label="Zoom out">−</button
+            >
+          </div>
+          </div>
+          <button class="panel-edge-toggle panel-edge-filters" type="button" data-panel-toggle="filters" aria-controls="filterPanel" aria-expanded="true" aria-label="Collapse filters" title="Collapse filters"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><button class="panel-edge-toggle panel-edge-activity" type="button" data-panel-toggle="activity" aria-controls="activityPanel" aria-expanded="true" aria-label="Collapse activity" title="Collapse activity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+          <span id="mapName" class="map-name"></span>
+          <canvas
+            id="map"
+            tabindex="0"
+              aria-label="Recorded positions. Drag to pan, scroll to zoom. Select actors using the list or map. Click structures, walls or facility icons to inspect their model."
+          ></canvas
+          >
+          <aside id="buildingInspector" class="building-inspector" aria-label="Building model" hidden>
+            <button id="closeBuilding" class="building-close" aria-label="Close building preview">×</button>
+            <h2 id="buildingTitle">Building</h2>
+            <p id="buildingStatus" role="status"></p>
+            <img id="buildingImage" alt="" hidden />
+            <p class="muted">Model preview · not this placed instance</p>
+          </aside>
+        </section>
+        <aside id="activityPanel" class="activity"><div id="selection" class="selection" hidden></div>
+          <h2>Activity</h2>
+          <div class="event-filters">
+            <label
+              ><input type="checkbox" data-event="combat" checked /> Damage
+              &amp; deaths</label
+            ><label
+              ><input type="checkbox" data-event="shots" checked /> Shots</label
+            >
+          </div>
+          <div id="events"></div>
+          <button id="moreEvents" hidden>Show more events</button>
+          <details>
+            <summary>Selected event data</summary>
+            <pre id="eventData">No event selected.</pre>
+          </details>
+        </aside>
+      </div>
+      <section class="transport" aria-label="Playback controls">
+        <button id="play" type="button" title="Play (Space)" aria-label="Play" aria-keyshortcuts="Space" data-playing="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="play-icon" d="M7 4 L20 12 L7 20 Z"/><path class="pause-icon" d="M6 4 H10 V20 H6 Z M14 4 H18 V20 H14 Z"/></svg></button>
+        <output id="clock">0:00 / 0:00</output
+        ><div class="timeline-track"><div id="timelineCheckpoints" aria-label="Player kills and deaths"></div><input
+          id="timeline"
+          type="range"
+          min="0"
+          max="1"
+          value="0"
+          step="1"
+          aria-label="Recording time"
+          aria-keyshortcuts="ArrowLeft ArrowRight"
+          title="Left / Right: skip 5 seconds"
+          disabled
+        /></div><label
+          >Speed
+          <select id="speed">
+            <option value="0.25">¼×</option>
+            <option value="0.5">½×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+            <option value="8">8×</option>
+          </select></label
+        >
+      </section>
+    </main>
+    <script type="module" src="/playback.js"></script>
+    <script src="/navigation.js"></script>
+  </body>
+</html>

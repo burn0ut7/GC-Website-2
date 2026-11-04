@@ -3,6 +3,7 @@ using GC.Worker;
 using Quartz;
 
 var builder = Host.CreateApplicationBuilder(args);
+builder.Configuration.AddJsonFile("appsettings.Worker.Local.json",optional:true,reloadOnChange:false).AddEnvironmentVariables().AddCommandLine(args);
 var connection = builder.Configuration.GetConnectionString("Gc")
     ?? throw new InvalidOperationException("ConnectionStrings__Gc is required. The worker never falls back to an in-memory database.");
 builder.Services.AddWindowsService(options => options.ServiceName = "GC Worker");
@@ -33,6 +34,13 @@ builder.Services.AddQuartz("GC", options =>
         store.UseClustering();
     });
     var key = new JobKey("heartbeat");
+    if(builder.Configuration.GetValue<bool>("Catalog:Enabled") || !string.IsNullOrWhiteSpace(builder.Configuration["Catalog:LocalMission:Manifest"]))
+    {
+        var catalog=new JobKey("mission-catalog");
+        options.AddJob<CatalogJob>(job=>job.WithIdentity(catalog));
+        options.AddTrigger(trigger=>trigger.WithIdentity("catalog-every-10-minutes").ForJob(catalog).StartNow()
+            .WithSimpleSchedule(schedule=>schedule.WithInterval(TimeSpan.FromMinutes(10)).RepeatForever()));
+    }
     options.AddJob<HeartbeatJob>(job => job.WithIdentity(key));
     options.AddTrigger(trigger => trigger.WithIdentity("heartbeat-every-30-seconds")
         .ForJob(key).WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromSeconds(30))
@@ -63,5 +71,16 @@ builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete
 var host = builder.Build();
 if (!await Database.IsReady(host.Services.GetRequiredService<Npgsql.NpgsqlDataSource>(), default))
     throw new InvalidOperationException("Apply database migrations before starting the worker.");
+if(args.Contains("--catalog-once"))
+{
+    using var http=new HttpClient{Timeout=TimeSpan.FromSeconds(60)};
+    var database=host.Services.GetRequiredService<Npgsql.NpgsqlDataSource>();
+    await CatalogJob.RefreshLocal(database,builder.Configuration,default);
+    if (builder.Configuration.GetValue<bool>("Catalog:Enabled"))
+        foreach(var source in builder.Configuration.GetSection("Catalog:Sources").Get<CatalogSource[]>()??[])
+            await new CatalogSync(http).Sync(database,source,default);
+    if(builder.Configuration.GetValue<bool>("Missions:Enabled"))await MissionDetails.Backfill(database,builder.Configuration["Ingest:ArchivePath"]!,default);
+    Console.WriteLine("Mission catalogue updated.");return;
+}
 await host.RunAsync();
 

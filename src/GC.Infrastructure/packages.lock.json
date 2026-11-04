@@ -4,9 +4,9 @@
     "net10.0": {
       "Lobby2.Contracts": {
         "type": "Direct",
-        "requested": "[1.0.0, )",
-        "resolved": "1.0.0",
-        "contentHash": "IaYfkyfNrDEPG5MHSBsTMDP8JqK9j4MXKKyVr8cJkJQIEIIcpHj0czSY2BNPaKM8LqzJkQMvymXcLAPRVXuTig=="
+        "requested": "[1.1.2, )",
+        "resolved": "1.1.2",
+        "contentHash": "0w2uLHZ/ZBOhfPnKgjJ60Eb64frBudEYxkNI8rmheZ9hijMVlCDSdY8eE72x8TN4yIQA3CJXyTw7AMwDmJ6iJA=="
       },
       "Npgsql": {
         "type": "Direct",

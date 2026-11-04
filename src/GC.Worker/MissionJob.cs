@@ -11,5 +11,6 @@ public sealed class MissionJob(NpgsqlDataSource database,IConfiguration configur
     {
         if(!configuration.GetValue<bool>("Missions:Enabled"))return;
         for(var count=0;count<8&&await MissionProjection.ProjectNext(database,configuration["Ingest:ArchivePath"]!,token);count++){}
+        await MissionDetails.Backfill(database,configuration["Ingest:ArchivePath"]!,token);
     }
 }

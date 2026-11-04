@@ -57,10 +57,24 @@ public static class Integrations
             var accepted = await Intake.Receive(database, archive!, server, stream, recording, revision, memory.ToArray(), context.RequestAborted);
             return accepted ? Results.Json(new { status = "accepted" }, statusCode: 202) : Results.Conflict(new { error = "revision_conflict" });
         }).RequireRateLimiting("intake");
+        app.MapGet("/api/v1/players/{identity:guid}/account", async (HttpContext context, Guid identity) =>
+        {
+            if (AuthorizeServer(context) is {} denial) return denial;
+            var database=context.RequestServices.GetService<NpgsqlDataSource>();
+            if(database is null)return Results.StatusCode(503);
+            context.Response.Headers.CacheControl="no-store";
+            var account=await SteamAccounts.Resolve(database,identity,context.RequestAborted);
+            return account is null?Results.NotFound(new {error="identity_not_linked"}):Results.Ok(account);
+        }).RequireRateLimiting("intake");
         var missions=app.MapGroup("/api/v1/missions").RequireRateLimiting("intake");
         missions.AddEndpointFilter((context,next)=>AuthorizeServer(context.HttpContext) is {} denial
             ? ValueTask.FromResult<object?>(denial):next(context));
         MissionRoutes.Map(missions,_=>server);
+        var catalog=app.MapGroup("/api/v1/catalog").RequireRateLimiting("intake");
+        catalog.AddEndpointFilter((context,next)=>AuthorizeServer(context.HttpContext) is {} denial
+            ? ValueTask.FromResult<object?>(denial):next(context));
+        CatalogRoutes.MapRead(catalog);
+        CatalogRoutes.MapSessions(catalog,_=>server);
         // Proof APIs use the same server-scoped machine credential, not blanket member access.
         app.MapGet("/api/v1/recordings/{recording:guid}", async (HttpContext context, Guid recording) =>
         {

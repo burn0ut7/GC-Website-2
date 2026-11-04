@@ -1,0 +1,22 @@
+{
+  "key": "arland-lobby",
+  "name": "Arland Lobby",
+  "map": "Arland",
+  "author": "",
+  "description": "Lobby2 test mission on Arland.",
+  "world": "{2DEA56A8DD9330F2}worlds/examples/arland/Arland_Lobby.ent",
+  "worldAliases": [
+    "$Lobby2:worlds/examples/arland/Arland_Lobby.ent"
+  ],
+  "tags": [
+    "Testing",
+    "Lobby2"
+  ],
+  "maxPlayers": null,
+  "missionType": "TEST",
+  "objectives": [],
+  "mods": [
+    "Lobby2"
+  ],
+  "assetTypes": []
+}

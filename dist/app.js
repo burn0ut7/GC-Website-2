@@ -5,13 +5,21 @@ function shell(content){
 async function updateAccountLink(){
  const link=document.querySelector('#headerAccount');
  if(!link)return;
+ window.gcPreferences=undefined;
+ updateSessionTimes();
+ link.removeAttribute('title');
  link.href='/account.html';
  link.setAttribute('aria-label','Sign in with Discord');
  link.querySelector('span').innerHTML='Sign in<span class="sign-in-provider"> with Discord</span>';
  try{
   const response=await fetch('/api/me',{cache:'no-store'});
   if(!link?.isConnected)return;
-  if(response.ok){link.querySelector('span').textContent='Your account';link.setAttribute('aria-label','Your account');return;}
+  if(response.ok){
+   link.querySelector('span').textContent='Your account';link.setAttribute('aria-label','Your account');
+   const settings=await fetch('/api/account/settings',{cache:'no-store'});
+   if(settings.ok&&link.isConnected){window.gcPreferences=await settings.json();link.title=window.gcPreferences.displayName||'Your account';updateSessionTimes();}
+   return;
+  }
   if(response.status!==401)return;
   const status=await fetch('/api/auth/status',{cache:'no-store'});
   if(!status.ok)return;
@@ -37,7 +45,7 @@ function setVideoStartingVolume(iframe){
   if(!iframe?.isConnected)return;
   const player=new YT.Player(iframe,{events:{onReady:event=>{
    if(!iframe.isConnected)return;
-   event.target.setVolume(25);
+   event.target.setVolume(window.gcPreferences?.videoVolume??25);
   }}});
   youtubePlayers.push(player);
  }).catch(()=>{/* The native player remains usable. */});
@@ -48,6 +56,7 @@ function render(){
  document.body.className='field page-home';
  document.title='Global Conflicts — One-life Arma Reforger';
  app.innerHTML=shell(home());
+ window.mountNavigation?.();
  wireLanding();
  updateAccountLink();
  updateSessionTimes();
@@ -57,7 +66,7 @@ function home(){
  return `<section class="field-opening"><div class="opening-copy"><h1>One life.<br><span>Arma Reforger.</span></h1><p>An international Arma community with 15+ years of tactical teamwork and good times—no ranks, no attendance requirements, just join and play when you can.</p><p class="opening-time"><span data-session-days></span> · <span data-session-time></span></p><a class="btn discord-button" href="https://discord.globalconflicts.net" target="_blank" rel="noopener"><img class="discord-icon" src="discord.svg" alt="" width="20" height="20">Join us on Discord ↗</a></div><figure class="opening-media"><img src="squad.jpg" alt="Two soldiers advancing together beside a building, from the Global Conflicts community archive" fetchpriority="high"></figure><button class="scroll-invitation" id="exploreBelow">How to play <span aria-hidden="true">↓</span></button></section><section id="howWePlay" class="field-story"><div class="story-video" id="introPlayer"><button id="playIntro" aria-label="Play the Global Conflicts introduction"><img src="intro-thumbnail.jpg" alt="Global Conflicts guide to joining and playing Arma Reforger"><span class="story-play" aria-hidden="true">▶</span></button></div></section><section class="field-join-section"><div><h2>Your next<br>session starts here.</h2><p class="large-session-time"><span data-session-days></span><br><span data-session-time></span></p></div><div class="join-copy"><p>Discord is where we meet, plan, and play. Get your server details and mods, ask questions, and find your squad.</p><p>Bring a working microphone and a mature attitude. We’ll help you get started.</p><a class="btn discord-button" href="https://discord.globalconflicts.net" target="_blank" rel="noopener"><img class="discord-icon" src="discord.svg" alt="" width="20" height="20">Join us on Discord ↗</a></div></section>`;
 }
 function wireLanding(){
- document.querySelector('#exploreBelow')?.addEventListener('click',()=>document.querySelector('#howWePlay').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
+ document.querySelector('#exploreBelow')?.addEventListener('click',()=>document.querySelector('#howWePlay').scrollIntoView({behavior:window.gcPreferences?.reduceMotion||window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
  document.querySelector('#playIntro')?.addEventListener('click',()=>{document.querySelector('#introPlayer').innerHTML='<div class="video-embed"><iframe src="https://www.youtube-nocookie.com/embed/_SW1tEkcfRU?enablejsapi=1&amp;autoplay=0" title="Global Conflicts Guide: How to Join and Play Arma Reforger With Us" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>';setVideoStartingVolume(document.querySelector('#introPlayer iframe'))})
 }
 window.addEventListener('hashchange',render);render();

@@ -1,5 +1,4 @@
 @echo off
 cd /d "%~dp0"
-echo Open http://127.0.0.1:5080 in your browser after the server starts.
-dotnet run --project GC.Web.csproj
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Launch-Local.ps1"
 if errorlevel 1 pause

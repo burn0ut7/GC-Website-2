@@ -24,6 +24,25 @@ if (args.Contains("--migrate", StringComparer.Ordinal))
     Console.WriteLine("Database migrations applied.");
     return;
 }
+if (Array.IndexOf(args,"--import-local-mission") is var importAt && importAt >= 0)
+{
+    if(importAt+1>=args.Length || string.IsNullOrWhiteSpace(connectionString))throw new ArgumentException("A mission manifest and database connection are required.");
+    await using var db=Database.Open(connectionString);
+    var manifest=await File.ReadAllTextAsync(args[importAt+1]);
+    if(Array.IndexOf(args,"--mission-header") is var headerAt && headerAt>=0)
+    {
+        if(headerAt+1>=args.Length)throw new ArgumentException("A mission header path is required.");
+        string? generated=null;
+        if(Array.IndexOf(args,"--mission-content") is var contentAt && contentAt>=0)
+        {
+            if(contentAt+1>=args.Length)throw new ArgumentException("A generated content path is required.");
+            generated=await File.ReadAllTextAsync(args[contentAt+1]);
+        }
+        manifest=LocalMissionImport.WithHeader(manifest,await File.ReadAllTextAsync(args[headerAt+1]),generated);
+    }
+    var id=await LocalMissionImport.Import(db,manifest,args.Contains("--replace-mission-list"));
+    Console.WriteLine("Imported mission: "+id);return;
+}
 if (!string.IsNullOrWhiteSpace(connectionString))
     builder.Services.AddSingleton(_ => Database.Open(connectionString));
 builder.Services.AddProblemDetails();
@@ -51,7 +70,8 @@ app.Use(async (context, next) =>
 {
     if (context.Request.Path.StartsWithSegments("/auth") || context.Request.Path.StartsWithSegments("/api/auth") ||
         context.Request.Path.StartsWithSegments("/api/me") || context.Request.Path.StartsWithSegments("/api/admin") ||
-        context.Request.Path.StartsWithSegments("/admin"))
+        context.Request.Path.StartsWithSegments("/admin") || context.Request.Path.StartsWithSegments("/playback") ||
+        context.Request.Path == "/account.html" || context.Request.Path == "/insufficient-permissions")
     {
         context.Response.Headers.CacheControl = "no-store";
         context.Response.Headers["Referrer-Policy"] = "no-referrer";
@@ -65,7 +85,9 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 Identity.Map(app);
 AdminData.Map(app);
+MapPackages.Map(app);
 Integrations.Map(app);
+CatalogRoutes.Map(app);
 
 // Liveness only: database and external services are not part of this slice.
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));

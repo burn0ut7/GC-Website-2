@@ -22,13 +22,17 @@ legacy `Auth:AdminDiscordIds` setting is ignored and may be removed from old
 configuration. There is no automatic Admin-role, first-user or development bypass.
 
 Every privileged request resolves the website account's verified Discord link,
-then calls Discord's HTTPS Get Guild Member endpoint using the server-held bot
+then uses Discord's HTTPS Get Guild Member endpoint using the server-held bot
 credential. Access requires that member's role-ID array to contain the configured
 Developer role. Names are display labels, not identity: renaming a role preserves
 access; deleting/recreating it requires configuring its new ID.
 
-No positive grants are cached in cookies or the database. Role removal takes effect
-on the next successfully checked request. Missing configuration, missing membership,
+Results are cached only in server memory: positive checks for 30 seconds, denials
+for 5 seconds, at most 1,024 entries. Concurrent checks share a serialized lookup;
+canceled requests are not cached. Keys include guild, role, credential hash and
+Discord identity. This prevents recording pagination from rate-limiting Discord.
+No grants are cached in cookies or the database. Role removal takes effect after
+at most 30 seconds; expired grants never survive lookup failures. Missing configuration, missing membership,
 invalid responses, timeouts, rate limits and provider errors deny privileged access.
 A 429 pauses lookups according to Retry-After (bounded to 1–3600 seconds, default 30).
 Ordinary sign-in and account access remain independent of role lookup availability.

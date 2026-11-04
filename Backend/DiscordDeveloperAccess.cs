@@ -4,19 +4,39 @@ using System.Text.Json;
 
 namespace GC.Web;
 
-// The configured guild's Developer role is the sole authority. Never cache positive grants
-// in cookies or retain stale permission when Discord cannot verify membership.
-public sealed class DiscordDeveloperAccess(IConfiguration configuration, IHttpClientFactory clients)
+// Discord remains the authority. Server-only results expire after 30 seconds;
+// expired grants are never used when verification fails. Cookies carry no role grant.
+public sealed class DiscordDeveloperAccess(IConfiguration configuration, IHttpClientFactory clients, TimeProvider? clock = null)
 {
     private long retryAfterTicks;
+    private readonly TimeProvider time = clock ?? TimeProvider.System;
+    private readonly SemaphoreSlim gate = new(1, 1);
+    private readonly Dictionary<string, (bool Allowed, DateTimeOffset Until)> cache = new();
 
     public async Task<bool> HasRole(string subject, CancellationToken token)
+    {
+        var key = string.Join("|", configuration["Discord:GuildId"], configuration["Discord:DeveloperRoleId"],
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(configuration["Discord:BotToken"] ?? ""))), subject);
+        await gate.WaitAsync(token);
+        try
+        {
+            if (cache.TryGetValue(key, out var entry) && entry.Until > time.GetUtcNow()) return entry.Allowed;
+            var allowed = await VerifyRole(subject, token);
+            token.ThrowIfCancellationRequested();
+            if (cache.Count >= 1024) cache.Clear();
+            cache[key] = (allowed, time.GetUtcNow().AddSeconds(allowed ? 30 : 5));
+            return allowed;
+        }
+        finally { gate.Release(); }
+    }
+
+    private async Task<bool> VerifyRole(string subject, CancellationToken token)
     {
         var guild = configuration["Discord:GuildId"];
         var role = configuration["Discord:DeveloperRoleId"];
         var credential = configuration["Discord:BotToken"];
         if (!Snowflake(guild) || !Snowflake(role) || !Snowflake(subject) || string.IsNullOrWhiteSpace(credential)
-            || DateTime.UtcNow.Ticks < Interlocked.Read(ref retryAfterTicks)) return false;
+            || time.GetUtcNow().Ticks < Interlocked.Read(ref retryAfterTicks)) return false;
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, $"https://discord.com/api/v10/guilds/{guild}/members/{subject}");
@@ -26,8 +46,8 @@ public sealed class DiscordDeveloperAccess(IConfiguration configuration, IHttpCl
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
                 var delay = response.Headers.RetryAfter?.Delta
-                    ?? (response.Headers.RetryAfter?.Date - DateTimeOffset.UtcNow) ?? TimeSpan.FromSeconds(30);
-                Interlocked.Exchange(ref retryAfterTicks, DateTime.UtcNow.AddSeconds(Math.Clamp(delay.TotalSeconds, 1, 3600)).Ticks);
+                    ?? (response.Headers.RetryAfter?.Date - time.GetUtcNow()) ?? TimeSpan.FromSeconds(30);
+                Interlocked.Exchange(ref retryAfterTicks, time.GetUtcNow().AddSeconds(Math.Clamp(delay.TotalSeconds, 1, 3600)).Ticks);
                 return false;
             }
             if (!response.IsSuccessStatusCode) return false;

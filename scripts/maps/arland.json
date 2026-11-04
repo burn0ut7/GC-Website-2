@@ -1,0 +1,13 @@
+{
+  "name": "Arland",
+  "slug": "arland",
+  "worldSuffix": "worlds/examples/arland/arland_lobby.ent",
+  "bounds": [0, 0, 4096, 4096],
+  "calibration": "Confirmed against live SCR_MapEntity Size/Offset; Workbench export must match these bounds",
+  "topography": "worlds/Arland/Arland.topo",
+  "topographySha256": "479a06286587a076a0dd83e5c5e0a78154d81c8a6f9a248a453ad43ca56cf0ec",
+  "raster": "UI/Textures/Map/worlds/Arland/ArlandRasterized.edds",
+  "tilePrefix": "worlds/Arland/Terrain/.Data/Terrain_",
+  "tileCount": 256,
+  "tileColumns": 16
+}

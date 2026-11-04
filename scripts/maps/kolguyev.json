@@ -1,0 +1,18 @@
+{
+  "name": "Kolguyev",
+  "slug": "kolguyev",
+  "worldSuffix": "worlds/playback/cain_playback.ent",
+  "bounds": [
+    0,
+    0,
+    12800,
+    12800
+  ],
+  "calibration": "Confirmed against live SCR_MapEntity Size/Offset; Workbench export must match these bounds",
+  "topography": "worlds/Cain/Cain.topo",
+  "topographySha256": "94c1972d7118bda6619ef2e3998715a07a45eabceb78f116e9c4a82c7ad91913",
+  "raster": "UI/Textures/Map/worlds/Cain/CainRasterized.edds",
+  "tilePrefix": "worlds/Cain/Terrain/.Data/Terrain_",
+  "tileCount": 2500,
+  "tileColumns": 50
+}

@@ -7,3 +7,7 @@ artifacts/
 *.user
 appsettings.Local.json
 .local/
+node_modules/
+map-export.local.json
+
+appsettings.Worker.Local.json

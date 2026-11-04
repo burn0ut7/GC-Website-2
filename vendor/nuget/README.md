@@ -1,13 +1,22 @@
 # Shared Lobby2 contracts
 
-Current dependency: `Lobby2.Contracts.1.0.0.nupkg`.
+Current dependency: `Lobby2.Contracts.1.1.2.nupkg`.
 
-Source commit: `198549254344b4e9d7ebcc097315d6c588aade6d`.
-SHA-256: `0ba0bb15fba2cc6abcb36e29ada03279604a16fdfe9fbbcf7d749b404afa3b82`.
+Source content: Lobby2 commit `04652ca538e1870832cf434f7cf5ac97f5790088`,
+`integrations/Contracts`. Package was built and tested before committing that
+unchanged source content.
+SHA-256: `148b563842ddb99c763c54b67fc340dd5b794d79ebddb17b27afe76c82812090`.
+Adds validated local/radio voice start, refresh and stop cold events, retaining
+L2TB v1 and earlier recording support. The importer references the same source.
 
-Source: https://github.com/burn0ut7/Lobby2/tree/198549254344b4e9d7ebcc097315d6c588aade6d/integrations/Contracts
+Previous dependency: `Lobby2.Contracts.1.1.1.nupkg`.
 
-This expands the shared package to statistics, session events and mission history, preserving the existing telemetry codec. Build with `dotnet pack integrations/Contracts -c Release` from the committed revision. Consumer dependency and locks must move together. Never overwrite a released version. No player captures are packaged.
+Source commit: `bbc8edc9f16bc0bc4d4d793de084a72761bd1208`.
+SHA-256: `94907494173936550e08310cf5ecba68854598974d022f4464298b13607e561e`.
+
+Source: https://github.com/burn0ut7/Lobby2/tree/bbc8edc9f16bc0bc4d4d793de084a72761bd1208/integrations/Contracts
+
+This adds validated faction map snapshots and preserved military marker metadata, retaining the existing telemetry codec and statistics/session/history contracts. Build with `dotnet pack integrations/Contracts -c Release` from the committed revision. Consumer dependency and locks must move together. Never overwrite a released version. No player captures are packaged.
 
 The previous telemetry-only package below is retained as an immutable historical artifact and is no longer referenced by the website.
 
@@ -30,3 +39,4 @@ For updates, change and test the canonical source, increment its package version
 commit, then `dotnet pack integrations/TelemetryContracts -c Release -o <output>`.
 Update this provenance record and consumer dependency/locks together. Never
 replace an existing released package version. No capture data is included here.
+
