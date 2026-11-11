@@ -46,6 +46,14 @@ internal static class CatalogChecks
    var detail=JsonSerializer.SerializeToNode(await MissionCatalog.Detail(db,id,default))!;
    Check(detail["scenarioId"]!.ToString()=="{1111111111111111}Missions/A.conf","Actual scenario path wins over stale meta Name");
    Check(detail["tags"]!.AsArray().Any(t=>t!.ToString()=="Infantry"),"Authored tags imported");
+   var votePage=JsonSerializer.SerializeToNode(await MissionVoting.Candidates(db,0,default))!;
+   Check(votePage["version"]!.GetValue<int>()==1 && votePage["rows"]!.AsArray().Count==2,"Voting projects available scenario definitions");
+   var voteRows=votePage["rows"]!.AsArray().Select(x=>JsonNode.Parse(x!.GetValue<string>())!).ToArray();
+   Check(voteRows.Any(x=>x["scenario"]!.GetValue<string>()=="{1111111111111111}Missions/A.conf" && x["plays"]!.GetValue<string>()=="0" && x["lastPlayed"]!.GetValue<string>()=="Never played"),"Unplayed vote choices preserve exact scenario identity and unknown history");
+   await using(var hide=db.CreateCommand("UPDATE gc.catalog_missions SET listed=false WHERE id=$1")){hide.Parameters.AddWithValue(id);await hide.ExecuteNonQueryAsync();}
+   Check(JsonSerializer.SerializeToNode(await MissionVoting.Candidates(db,0,default))!["rows"]!.AsArray().Count==1,"Hidden missions cannot become vote choices");
+   await using(var show=db.CreateCommand("UPDATE gc.catalog_missions SET listed=true WHERE id=$1")){show.Parameters.AddWithValue(id);await show.ExecuteNonQueryAsync();}
+   try { await MissionVoting.Candidates(db,-1,default);throw new Exception("Invalid voting page accepted"); } catch(ArgumentException) {}
    var calls=handler.Calls;await sync.Sync(db,source,default);Check(handler.Calls==calls+1,"Unchanged commit needs only a ref check");
    handler.Version++;handler.GeneratedVersion=1;await sync.Sync(db,source,default);
    detail=JsonSerializer.SerializeToNode(await MissionCatalog.Detail(db,id,default))!;
@@ -126,7 +134,10 @@ internal static class CatalogChecks
   client.DefaultRequestHeaders.Remove("X-Test-Role");client.DefaultRequestHeaders.Add("X-Test-Role","Developer");Check((await client.GetAsync($"/api/admin/catalog/{id}/sessions")).StatusCode==HttpStatusCode.OK,"Developer can read history");
   Check((await client.GetAsync("/api/admin/game/players?search=Test")).IsSuccessStatusCode && (await client.GetAsync("/api/admin/game/player/sessions?identity=player")).IsSuccessStatusCode,"Developer can browse players and drill into session performance");
   Check((await client.GetAsync("/api/v1/catalog")).StatusCode==HttpStatusCode.Unauthorized,"Website role does not grant machine API access");
+  Check((await client.GetAsync("/api/v1/catalog/voting")).StatusCode==HttpStatusCode.Unauthorized,"Website roles cannot access mission voting API");
   client.DefaultRequestHeaders.Authorization=new("Bearer",new string('x',40));Check((await client.GetAsync("/api/v1/catalog")).StatusCode==HttpStatusCode.OK,"Server credential reads catalogue");
+  Check((await client.GetAsync("/api/v1/catalog/voting")).StatusCode==HttpStatusCode.OK,"Server credential reads voting projection");
+  Check((await client.GetAsync("/api/v1/catalog/voting?offset=-1")).StatusCode==HttpStatusCode.BadRequest,"Invalid voting pagination rejected");
   Check((await client.GetAsync($"/api/v1/catalog/{id}/sessions")).StatusCode==HttpStatusCode.OK,"Server credential reads scoped history");
   Check((await client.GetAsync("/api/catalog?offset=-1")).StatusCode==HttpStatusCode.BadRequest,"Invalid pagination rejected");
  }

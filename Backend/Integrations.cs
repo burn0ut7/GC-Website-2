@@ -75,6 +75,8 @@ public static class Integrations
             ? ValueTask.FromResult<object?>(denial):next(context));
         CatalogRoutes.MapRead(catalog);
         CatalogRoutes.MapSessions(catalog,_=>server);
+        catalog.MapGet("/voting", async (HttpContext context, int? offset, CancellationToken ct) =>
+            Results.Ok(await MissionVoting.Candidates(context.RequestServices.GetRequiredService<NpgsqlDataSource>(), offset ?? 0, ct)));
         // Proof APIs use the same server-scoped machine credential, not blanket member access.
         app.MapGet("/api/v1/recordings/{recording:guid}", async (HttpContext context, Guid recording) =>
         {
