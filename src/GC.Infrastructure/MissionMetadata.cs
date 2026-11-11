@@ -160,6 +160,66 @@ public static class MissionMetadata
         return MissionCategories.Parse(doc.RootElement).SearchTags(tags);
     }
 
+    // Native config defaults match GC_GeneratedMissionMetadata's attributed fields.
+    // JSON here is the website's normalized record, never an addon-side file.
+    internal static JsonObject? GeneratedFromHeader(MissionConfig header)
+    {
+        if (header.Find("m_GC_GeneratedMetadata") is not { } field) return null;
+        if (field.Body is not { } source || field.Values.Length is < 2 or > 3 || field.Values[1] != "GC_GeneratedMissionMetadata")
+            throw new InvalidDataException("Unsupported generated metadata object");
+        static int Integer(MissionConfig source, string key, int fallback = 0) => source.Text(key) is { Length: > 0 } value
+            ? int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : throw new InvalidDataException("Invalid " + key) : fallback;
+        static bool Flag(MissionConfig source, string key) => source.Text(key) switch {
+            "" or "0" => false, "1" => true, _ => throw new InvalidDataException("Invalid " + key)
+        };
+        static IEnumerable<MissionConfig> Rows(MissionConfig source, string key, string type)
+        {
+            foreach (var entry in source.Object(key)?.Entries ?? [])
+            {
+                if (entry.Body is null || entry.Values.Length is < 1 or > 2 || entry.Values[0] != type)
+                    throw new InvalidDataException("Invalid " + key + " entry");
+                yield return entry.Body;
+            }
+        }
+        var result = new JsonObject {
+            ["schemaVersion"] = Integer(source, "m_iSchemaVersion", 1),
+            ["world"] = source.Text("m_sWorld"), ["scope"] = source.Text("m_sCaptureScope"),
+            ["entityCount"] = Integer(source, "m_iEntityCount")
+        };
+        foreach (var (target, key) in new[] { ("limitations", "m_aLimitations"), ("factions", "m_aFactions"),
+            ("configuredFactions", "m_aConfiguredFactions"), ("referencedAddonIds", "m_aReferencedAddonIds") })
+            result[target] = JsonSerializer.SerializeToNode(source.Array(key));
+        var assets = new JsonObject();
+        foreach (var row in Rows(source, "m_aAssets", "GC_MissionMetadataAsset"))
+        {
+            var category = row.Text("m_sCategory");
+            if (category.Length == 0 || assets.ContainsKey(category)) throw new InvalidDataException("Invalid asset category");
+            assets[category] = Integer(row, "m_iCount");
+        }
+        result["assets"] = assets;
+        var slots = new JsonArray();
+        foreach (var row in Rows(source, "m_aPlayerSlots", "GC_MissionMetadataSlot"))
+            slots.Add(new JsonObject {
+                ["group"] = row.Text("m_sGroup"), ["index"] = Integer(row, "m_iIndex"),
+                ["faction"] = row.Text("m_sFaction"), ["prefab"] = row.Text("m_sPrefab"),
+                ["name"] = row.Text("m_sName"), ["loadoutFaction"] = row.Text("m_sLoadoutFaction")
+            });
+        result["playerSlots"] = slots;
+        var addons = new JsonArray();
+        foreach (var row in Rows(source, "m_aLoadedAddons", "GC_MissionMetadataAddon"))
+            addons.Add(new JsonObject {
+                ["id"] = row.Text("m_sId"), ["guid"] = row.Text("m_sGuid"), ["title"] = row.Text("m_sTitle"),
+                ["vanilla"] = Flag(row, "m_bVanilla"), ["referencedByPlacedPrefab"] = Flag(row, "m_bReferencedByPlacedPrefab")
+            });
+        result["loadedAddons"] = addons;
+        var hours = source.Array("m_aStartHours");
+        if (hours.Length > 0) result["startHours"] = JsonSerializer.SerializeToNode(hours.Select(h =>
+            int.TryParse(h, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : throw new InvalidDataException("Invalid start hour")));
+        if (Flag(source, "m_bRandomStartTime")) result["randomStartTime"] = true;
+        result["allowHeaderTime"] = Flag(source, "m_bAllowHeaderTime");
+        return result;
+    }
+
     internal static void ApplyGenerated(JsonObject metadata, string json, string world, MissionConfig? header = null)
     {
         var snapshot = Generated(json, world);

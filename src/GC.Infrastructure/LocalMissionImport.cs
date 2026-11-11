@@ -9,10 +9,10 @@ namespace GC.Infrastructure;
 public static class LocalMissionImport
 {
     // Explicit local CLI input only; never read file paths supplied by remote catalogue metadata.
-    public static string WithHeader(string manifest, string header, string? generated = null)
+    public static string WithHeader(string manifest, string header)
     {
         var root=System.Text.Json.Nodes.JsonNode.Parse(manifest)?.AsObject() ?? throw new InvalidDataException("Invalid local manifest");
-        var parsed=CatalogSync.Parse("local.conf",header,"{0000000000000001}",null,"local",generated);
+        var parsed=CatalogSync.Parse("local.conf",header,"{0000000000000001}",null,"local");
         if(!string.Equals(root["world"]?.GetValue<string>(),parsed.Metadata.GetProperty("world").GetString(),StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("Local manifest and header refer to different worlds");
         foreach(var field in parsed.Metadata.EnumerateObject())root[field.Name]=System.Text.Json.Nodes.JsonNode.Parse(field.Value.GetRawText());

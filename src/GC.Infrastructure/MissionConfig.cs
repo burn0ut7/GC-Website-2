@@ -19,7 +19,7 @@ internal sealed class MissionConfig
 
     public static MissionConfig Read(string text)
     {
-        if (text.Length > 1024 * 1024) throw new InvalidDataException("Mission header too large");
+        if (text.Length > 8 * 1024 * 1024) throw new InvalidDataException("Mission header too large");
         var tokens = new List<string>();
         for (var i = 0; i < text.Length;)
         {

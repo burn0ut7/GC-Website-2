@@ -51,7 +51,7 @@ Archived entries have `available:false` and must not be offered as launchable sc
 
 ## Local test library
 
-The local setup lists only Arland Lobby. Remote catalogue updates stay disabled. The worker reads the paths in `Catalog:LocalMission:Manifest`, `Header` and `Snapshot` at startup and every ten minutes. Refresh mission metadata in Workbench after editing the mission. The list and detail page use the same imported record.
+The local setup lists only Arland Lobby. Remote catalogue updates stay disabled. The worker reads the paths in `Catalog:LocalMission:Manifest`, and `Header` at startup and every ten minutes. Refresh mission metadata in Workbench after editing the mission. The list and detail page use the same imported record.
 
 To reproduce after applying migrations, run the website executable with the schema-owner connection and arguments `--import-local-mission data/mission-catalog/arland-lobby.json --replace-mission-list`. Run from the checkout. This hides prior entries and upserts the test definition without changing its identity on repeat imports. Omit the replacement flag to add a definition without hiding others.
 
@@ -111,7 +111,7 @@ Counts must be positive when supplied, ordered minimum <= recommended <= maximum
 
 Repository publication: save and commit the mission `.conf` plus its `.conf.meta`; the existing worker fetches it on startup/every ten minutes when `Catalog.Enabled` is true. No manual website import button is needed. Standard and subclassed serialized mission headers are supported. Inherited configs must be published as resolved headers; the importer is not an Enfusion resource inheritance engine.
 
-Generated world content is optional and separate. The importer resolves the header world path against the same repository's `<world>.ent.metadata.json`. Its blob hash participates in refresh detection. It verifies world identity/version and retains a bounded summary under `metadata.generated`; prefab detail rows are excluded from public catalogue responses. Detected assets never become player equipment, player capacity, objective tags or complete required dependencies. The exporter covers one mission subscene and may include unsaved editor state; it excludes runtime spawners and other subscenes. Save/export before publishing. A repository commit does not prove a previously generated scan was refreshed. Cross-repository generated files are not fetched implicitly.
+Generated world content is optional and embedded in the native mission header as `m_GC_GeneratedMetadata GC_GeneratedMissionMetadata`. Its fields include `m_iSchemaVersion`, `m_sWorld`, `m_sCaptureScope`, limits, factions, slot rows, detected assets, addon provenance and starting-time evidence. The header hash covers generated changes. The importer verifies world identity/version and retains a bounded summary under `metadata.generated`; prefab detail rows are excluded from public catalogue responses. Native attributed defaults (including zero slot indexes and false booleans) are respected. Header reads are bounded to 8 MiB. Detected assets never become player equipment, player capacity, objective tags or complete required dependencies. The collector covers one mission subscene and excludes runtime spawners and other subscenes. Save/refresh before publishing; a repository commit does not prove the scan was refreshed. Old `.ent.metadata.json` files are no longer fetched. Refresh existing missions in Workbench, verify the embedded data, then remove those exports.
 
 TilW conditions, hidden objectives and game-ending instructions are not copied into public metadata or guessed into semantic objective tags. Effective time/weather extraction, transitive addon dependency resolution and historical definition-version snapshots remain separate work. Existing session history/outcomes/statistics are preserved independently.
 
@@ -120,10 +120,10 @@ TilW conditions, hidden objectives and game-ending instructions are not copied i
 Run from the website checkout using the schema-owner connection:
 
 ```powershell
-dotnet bin/Release/net10.0/GC.Web.dll --import-local-mission data/mission-catalog/arland-lobby.json --mission-header "C:\Users\Gray\Documents\My Games\ArmaReforgerWorkbench\addons\Lobby2\Configs\Missions\ArlandLobby.conf"
+dotnet bin/Release/net10.0/GC.Web.dll --import-local-mission data/mission-catalog/arland-lobby.json --mission-header "C:\Users\Gray\Documents\My Games\ArmaReforgerWorkbench\addons\Lobby2\Configs\Missions\Gray\ArlandLobby.conf"
 ```
 
-Optional `--mission-content <world.ent.metadata.json>` attaches a verified generated snapshot. These are explicit local CLI file inputs, never remote-controlled server paths. The manifest retains the stable local identity and exact historical world aliases; the header supplies mission metadata. This updates Arland without listing the old repository missions or deleting history. The local test setup intentionally keeps repository sync disabled.
+Generated content is read directly from the supplied native header. `--mission-content` is retired and rejected. These are explicit local CLI file inputs, never remote-controlled server paths. The manifest retains stable local identity and historical world aliases; the header supplies mission metadata. This updates Arland without listing old repository missions or deleting history. The local test setup intentionally keeps repository sync disabled.
 
 Checks: `--mission-metadata` runs pure contract tests; `--catalog` runs the isolated database/API/import suite; `--mission-source <Missions-directory>` validates real local headers without writing them or changing the catalogue.
 

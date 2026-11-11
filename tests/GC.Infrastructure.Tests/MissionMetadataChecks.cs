@@ -47,9 +47,22 @@ internal static class MissionMetadataChecks
         }
         """;
     public const string Generated = """
-        {"schemaVersion":1,"world":"worlds/Test.ent","scope":"world_subscene","entityCount":6,"factions":["US","USSR"],"assets":{"tank":4},"limitations":["Placed content only"],"prefabs":[{"prefab":"not a player asset"}]}
+        m_iSchemaVersion 1
+        m_sWorld "{AAAAAAAAAAAAAAAA}worlds/Test.ent"
+        m_sCaptureScope "world_subscene"
+        m_iEntityCount 6
+        m_aFactions { "US" "USSR" }
+        m_aAssets {
+         GC_MissionMetadataAsset {
+          m_sCategory "tank"
+          m_iCount 4
+         }
+        }
+        m_aLimitations { "Placed content only" }
+        m_aPrefabs { GC_MissionMetadataPrefab { m_sPrefab "not a player asset" } }
         """;
-    static CatalogMission Parse(string header=Header,string? extra=null,string? generated=null) => CatalogSync.Parse("Missions/Test.conf",header,"{1111111111111111}",extra,"test",generated);
+    static string Embed(string header, string generated) => header.TrimEnd()[..^1]+"\n m_GC_GeneratedMetadata GC_GeneratedMissionMetadata {\n"+generated+"\n }\n}";
+    static CatalogMission Parse(string header=Header,string? extra=null,string? generated=null) => CatalogSync.Parse("Missions/Test.conf",generated is null?header:Embed(header,generated),"{1111111111111111}",extra,"test");
     static void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS: "+message);}
     static void Reject(Action action,string message){try{action();}catch(InvalidDataException){Console.WriteLine("PASS: "+message);return;}throw new Exception(message);}
 
@@ -61,7 +74,7 @@ internal static class MissionMetadataChecks
         Check(Parse(Header.Replace("m_aForces", "m_aFactions")).Metadata.GetProperty("forces").GetArrayLength()==0,"Retired faction inputs do not override world data");
         var m=Parse(generated:Generated);var d=m.Metadata;
         Check(!d.TryGetProperty("startTime",out _),"Older snapshot does not invent a start time");
-        string Hours(string hours,bool allow=false)=>Generated.TrimEnd()[..^1]+",\"startHours\":["+hours+"],\"allowHeaderTime\":"+(allow?"true":"false")+"}";
+        string Hours(string hours,bool allow=false)=>Generated+"\nm_aStartHours { "+hours.Replace(',',' ')+" }\nm_bAllowHeaderTime "+(allow?"1":"0");
         foreach(var (hours,period) in new[]{("0,5,21,23","Night"),("6,11","Morning"),("12,16","Midday"),("17,20","Evening"),("5,6","Variable")})
         {
             var timed=Parse(generated:Hours(hours));
@@ -70,19 +83,47 @@ internal static class MissionMetadataChecks
         var overrideHeader=Header.Replace("m_iPlayerCount 32","m_iPlayerCount 32\n m_bOverrideScenarioTimeAndWeather 1\n m_iStartingHours 22");
         Check(Parse(overrideHeader,generated:Hours("8",true)).Metadata.GetProperty("startTime").GetString()=="Night","Allowed header changes starting hour");
         Check(Parse(overrideHeader,generated:Hours("8")).Metadata.GetProperty("startTime").GetString()=="Morning","World preset retains priority");
-        Check(Parse(generated:Generated.TrimEnd()[..^1]+",\"randomStartTime\":true}").Metadata.GetProperty("startTime").GetString()=="Variable","Random start gets a variable label");
+        Check(Parse(generated:Generated+"\nm_bRandomStartTime 1").Metadata.GetProperty("startTime").GetString()=="Variable","Random start gets a variable label");
         Reject(()=>Parse(generated:Hours("24")),"Out-of-range start hour rejected");
         var composition=Parse(extra:"{\"assetTypes\":[\"APCs\",\"IFVs\",\"Mechanized\",\"Airborne\",\"Transport helicopters\",\"Attack helicopters\",\"Aircraft\",\"Drones\"]}");
         Check(composition.Metadata.GetProperty("assetTypes").EnumerateArray().Select(x=>x.GetString()).SequenceEqual(new[]{"Mechanized","Airborne","Drones"}),"Mechanized consolidates historical vehicle tags while airborne and drones remain independent");
-        var addonSnapshot=Generated.TrimEnd()[..^1]+"""
-            ,"loadedAddons":[{"title":"Used mod","vanilla":false,"referencedByPlacedPrefab":true},{"title":"Unused mod","vanilla":false,"referencedByPlacedPrefab":false},{"title":"Arma Reforger","vanilla":true,"referencedByPlacedPrefab":true}]}
+        var addonSnapshot=Generated+"\n"+"""
+            m_aLoadedAddons {
+             GC_MissionMetadataAddon {
+              m_sTitle "Used mod"
+              m_bReferencedByPlacedPrefab 1
+             }
+             GC_MissionMetadataAddon { m_sTitle "Unused mod" }
+             GC_MissionMetadataAddon {
+              m_sTitle "Arma Reforger"
+              m_bVanilla 1
+              m_bReferencedByPlacedPrefab 1
+             }
+            }
             """;
         var detected=Parse(extra:"{\"mods\":[\"Former tag\"]}",generated:addonSnapshot);
         Check(detected.Metadata.GetProperty("mods").EnumerateArray().Select(x=>x.GetString()).SequenceEqual(new[]{"Used mod"}) && detected.Tags.Contains("Used mod") && !detected.Tags.Contains("Former tag"),"Only referenced non-vanilla mods appear in mission details and search");
-        var slots=Generated.TrimEnd()[..^1]+",\"playerSlots\":[{\"group\":\"Alpha\",\"index\":0,\"faction\":\"US\",\"prefab\":\"Prefabs/Medic.et\",\"name\":\"Medic\",\"loadoutFaction\":\"US\"}]}";
-        Check(Parse(generated:slots).Metadata.GetProperty("generated").GetProperty("playerSlots")[0].GetProperty("prefab").GetString()=="Prefabs/Medic.et","World-derived player slots and loadout references survive intake");
-        Reject(()=>Parse(generated:slots.Replace("\"index\":0","\"index\":\"zero\"")),"Malformed player slot index rejected");
-        Reject(()=>Parse(generated:slots.Replace("\"prefab\":\"Prefabs/Medic.et\"","\"prefab\":null")),"Malformed player loadout rejected");
+        var slots=Generated+"\n"+"""
+            m_aPlayerSlots {
+             GC_MissionMetadataSlot "{1234567890123456}" {
+              m_sGroup "Alpha"
+              m_iIndex 0
+              m_sFaction "US"
+              m_sPrefab "Prefabs/Medic.et"
+              m_sName "Medic"
+              m_sLoadoutFaction "US"
+             }
+            }
+            """;
+        Check(Parse(generated:slots).Metadata.GetProperty("generated").GetProperty("playerSlots")[0].GetProperty("prefab").GetString()=="Prefabs/Medic.et","Native player slots and loadout references survive intake");
+        Reject(()=>Parse(generated:slots.Replace("m_iIndex 0","m_iIndex zero")),"Malformed native slot index rejected");
+        Reject(()=>Parse(generated:slots.Replace("GC_MissionMetadataSlot", "UnknownSlot")),"Unknown native slot class rejected");
+        Check(Parse(generated:slots.Replace("m_iIndex 0", "")).Metadata.GetProperty("generated").GetProperty("playerSlots")[0].GetProperty("index").GetInt32()==0,"Omitted native default slot index is zero");
+        Reject(()=>Parse(generated:Generated.Replace("m_iSchemaVersion 1", "m_iSchemaVersion 99")),"Unsupported native schema rejected");
+        Reject(()=>Parse(generated:Generated.Replace("world_subscene", "unknown")),"Unknown native capture scope rejected");
+        Reject(()=>Parse(generated:addonSnapshot.Replace("m_bVanilla 1", "m_bVanilla yes")),"Malformed native bool rejected");
+        Check(Parse(generated:Generated.Replace("m_iSchemaVersion 1", "")).Metadata.GetProperty("generated").GetProperty("schemaVersion").GetInt32()==1,"Omitted attributed schema default is one");
+        Check(!Parse().Metadata.TryGetProperty("generated",out _),"A header without generated data remains supported");
         Check(d.GetProperty("missionType").GetString()=="COOP" && d.GetProperty("minPlayers").GetInt32()==20 && d.GetProperty("recommendedPlayers").ValueKind==JsonValueKind.Null && m.MaxPlayers==32,"Native capacity and GC minimum are retained; recommended count is retired");
         Check(m.Description=="One paragraph\nAnother paragraph","Multiline description survives serialized config parsing");
         Check(d.GetProperty("forces").GetArrayLength()==0,"Old manually authored forces are ignored");
@@ -120,11 +161,11 @@ internal static class MissionMetadataChecks
         foreach(var extra in new[]{"{\"minPlayers\":40}","{\"minPlayers\":20,\"recommendedPlayers\":10}","{\"minPlayers\":\"20\"}","{\"schemaVersion\":99}","{\"forces\":[{\"faction\":\"US\",\"playable\":\"yes\"}]}","{\"requiredAddonIds\":[\"Lobby2\"]}","{\"missionGroup\":{\"id\":\"x\",\"similarity\":2}}"})
             Reject(()=>Parse(extra:extra),"Invalid typed metadata rejected: "+extra);
         Reject(()=>Parse(generated:Generated.Replace("worlds/Test.ent","worlds/Other.ent")),"Wrong-world generated snapshot rejected");
-        Reject(()=>Parse(generated:Generated.Replace("worlds/Test.ent","{BBBBBBBBBBBBBBBB}worlds/Test.ent")),"Conflicting world GUID rejected even when paths match");
+        Reject(()=>Parse(generated:Generated.Replace("AAAAAAAAAAAAAAAA","BBBBBBBBBBBBBBBB")),"Conflicting world GUID rejected even when paths match");
         Reject(()=>Parse(Header.Replace("m_sMissionType \"COOP\"","m_sMissionType \"COOP\"\nm_sMissionType \"TVT\"")),"Duplicate metadata fields rejected");
         Reject(()=>Parse("GC_MissionHeader : \"{1111111111111111}Parent.conf\" {\n m_sName \"Inherited\"\n}"),"Unresolved header inheritance rejected explicitly");
         var manifest="""{"key":"test","world":"{AAAAAAAAAAAAAAAA}worlds/Test.ent","worldAliases":[],"tags":[],"name":"Old"}""";
-        using var local=JsonDocument.Parse(LocalMissionImport.WithHeader(manifest,Header,Generated));
+        using var local=JsonDocument.Parse(LocalMissionImport.WithHeader(manifest,Embed(Header,Generated)));
         Check(local.RootElement.GetProperty("name").GetString()==m.Name&&local.RootElement.GetProperty("requiredAddonIds").GetArrayLength()==1,"Local import uses the same native header contract");
         Reject(()=>LocalMissionImport.WithHeader(manifest.Replace("AAAAAAAAAAAAAAAA","BBBBBBBBBBBBBBBB"),Header),"Local header world mismatch rejected");
     }

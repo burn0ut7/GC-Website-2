@@ -58,7 +58,7 @@ internal static class CatalogChecks
    var calls=handler.Calls;await sync.Sync(db,source,default);Check(handler.Calls==calls+1,"Unchanged commit needs only a ref check");
    handler.Version++;handler.GeneratedVersion=1;await sync.Sync(db,source,default);
    detail=JsonSerializer.SerializeToNode(await MissionCatalog.Detail(db,id,default))!;
-   Check(detail["metadata"]!["generated"]!["entityCount"]!.GetValue<int>()==1,"World sidecar imported automatically alongside scenario header");
+   Check(detail["metadata"]!["generated"]!["entityCount"]!.GetValue<int>()==1,"Embedded native snapshot imported automatically from scenario header");
    handler.Version++;handler.GeneratedVersion=2;await sync.Sync(db,source,default);
    detail=JsonSerializer.SerializeToNode(await MissionCatalog.Detail(db,id,default))!;
    Check(detail["metadata"]!["generated"]!["entityCount"]!.GetValue<int>()==2,"Generated-only change refreshes cached mission");
@@ -155,13 +155,12 @@ internal static class CatalogChecks
    Calls++;var path=r.RequestUri!.AbsolutePath;object data;
    if(path.Contains("/git/ref/"))data=new{ @object=new{sha=Version.ToString("x40")}};
    else if(path.Contains("/git/trees/")){
-    var files=new List<object>();foreach(var n in RemoveB?new[]{"A"}:new[]{"A","B"})foreach(var suffix in new[]{".conf",".conf.meta",".conf.metadata.json"})files.Add(new{path="Missions/"+n+suffix,type="blob",sha=n+suffix+(suffix==".conf.metadata.json"?Sidecar:"")});
-    if(GeneratedVersion>0)files.Add(new{path="World.ent.metadata.json",type="blob",sha="generated"+GeneratedVersion});
+    var files=new List<object>();foreach(var n in RemoveB?new[]{"A"}:new[]{"A","B"})foreach(var suffix in new[]{".conf",".conf.meta",".conf.metadata.json"})files.Add(new{path="Missions/"+n+suffix,type="blob",sha=n+suffix+(suffix==".conf.metadata.json"?Sidecar:suffix==".conf"?GeneratedVersion.ToString():"")});
     data=new{truncated=false,tree=files};
    }else{
     if(Fail)return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
-    if(path.EndsWith("/World.ent.metadata.json"))return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK){Content=new StringContent(JsonSerializer.Serialize(new{schemaVersion=1,world="World.ent",scope="world_subscene",entityCount=GeneratedVersion,assets=new{tank=1}}))});
     var a=path.Contains("/A.conf");var text=path.EndsWith(".meta")?$"Meta {{ Name \"{{{(a?"1111111111111111":"2222222222222222")}}}Missions/Old.conf\" }}":path.EndsWith(".json")?"{\"tags\":[\"Infantry\"]}":$"SCR_MissionHeader {{\n World \"{{AAAAAAAAAAAAAAAA}}World.ent\"\n m_sName \"COOP {(a?"Alpha":"Bravo")}\"\n m_sAuthor \"Creator\"\n m_sDescription \"Description\"\n m_iPlayerCount 32\n}}";
+    if(path.EndsWith(".conf")&&GeneratedVersion>0)text=text.TrimEnd()[..^1]+$"\n m_GC_GeneratedMetadata GC_GeneratedMissionMetadata {{\n m_sWorld \"{{AAAAAAAAAAAAAAAA}}World.ent\"\n m_sCaptureScope \"world_subscene\"\n m_iEntityCount {GeneratedVersion}\n }}\n}}";
     if(path.EndsWith(".json")&&Sidecar is not null)text=Sidecar;
     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK){Content=new StringContent(text)});
    }

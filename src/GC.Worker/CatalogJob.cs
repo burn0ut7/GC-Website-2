@@ -10,9 +10,8 @@ public sealed class CatalogJob(NpgsqlDataSource database,IConfiguration configur
     {
         if (configuration["Catalog:LocalMission:Manifest"] is not { Length: > 0 } manifest) return;
         var header = configuration["Catalog:LocalMission:Header"] ?? throw new InvalidDataException("Missing local mission header");
-        var snapshot = configuration["Catalog:LocalMission:Snapshot"] ?? throw new InvalidDataException("Missing local mission snapshot");
         var json = LocalMissionImport.WithHeader(await File.ReadAllTextAsync(manifest, token),
-            await File.ReadAllTextAsync(header, token), await File.ReadAllTextAsync(snapshot, token));
+            await File.ReadAllTextAsync(header, token));
         await LocalMissionImport.Import(database, json, false, token);
     }
 

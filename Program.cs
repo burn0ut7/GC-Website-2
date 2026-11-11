@@ -32,13 +32,8 @@ if (Array.IndexOf(args,"--import-local-mission") is var importAt && importAt >= 
     if(Array.IndexOf(args,"--mission-header") is var headerAt && headerAt>=0)
     {
         if(headerAt+1>=args.Length)throw new ArgumentException("A mission header path is required.");
-        string? generated=null;
-        if(Array.IndexOf(args,"--mission-content") is var contentAt && contentAt>=0)
-        {
-            if(contentAt+1>=args.Length)throw new ArgumentException("A generated content path is required.");
-            generated=await File.ReadAllTextAsync(args[contentAt+1]);
-        }
-        manifest=LocalMissionImport.WithHeader(manifest,await File.ReadAllTextAsync(args[headerAt+1]),generated);
+        if(args.Contains("--mission-content"))throw new ArgumentException("Generated content now belongs in the mission header. Refresh it in Workbench and omit --mission-content.");
+        manifest=LocalMissionImport.WithHeader(manifest,await File.ReadAllTextAsync(args[headerAt+1]));
     }
     var id=await LocalMissionImport.Import(db,manifest,args.Contains("--replace-mission-list"));
     Console.WriteLine("Imported mission: "+id);return;

@@ -13,7 +13,7 @@ public sealed record CatalogSource(string Repository, string Branch);
 /// <summary>Commit-pinned snapshots. A failed/incomplete fetch never removes catalogue entries.</summary>
 public sealed class CatalogSync(HttpClient http)
 {
-    private const int ParserVersion=11;
+    private const int ParserVersion=12;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public async Task Sync(NpgsqlDataSource db,CatalogSource source,CancellationToken ct)
     {
@@ -76,15 +76,12 @@ public sealed class CatalogSync(HttpClient http)
                 if(!files.TryGetValue(path+".meta",out var metaHash))throw new InvalidDataException("Missing scenario identity");
                 var sidecar=path+".metadata.json";
                 var raw="https://raw.githubusercontent.com/"+source.Repository+"/"+sha+"/";
-                var content=await Read(raw+EscapePath(path),1024*1024,ct);
-                var worldPath=MissionMetadata.WorldPath(MissionConfig.Read(content).Text("World"));
-                var generatedPath=files.Keys.SingleOrDefault(p=>p.Equals(worldPath+".metadata.json",StringComparison.OrdinalIgnoreCase));
-                var hash=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(ParserVersion+files[path]+metaHash+files.GetValueOrDefault(sidecar)+(generatedPath is null?"":files[generatedPath]))));
+                var content=await Read(raw+EscapePath(path),8*1024*1024,ct);
+                var hash=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(ParserVersion+files[path]+metaHash+files.GetValueOrDefault(sidecar))));
                 if(old.TryGetValue(path,out var known)&&known.SourceHash==hash)return known;
                 var meta=await Read(raw+EscapePath(path+".meta"),1024*1024,ct);
                 var extra=files.ContainsKey(sidecar)?await Read(raw+EscapePath(sidecar),1024*1024,ct):null;
-                var generated=generatedPath is null?null:await Read(raw+EscapePath(generatedPath),8*1024*1024,ct);
-                return Parse(path,content,meta,extra,hash,generated);
+                return Parse(path,content,meta,extra,hash);
             } catch(Exception error) when(error is InvalidDataException or JsonException) {
                 issues.Add(new{path,reason="invalid_mission_header",retained=old.ContainsKey(path)});
                 return old.GetValueOrDefault(path);
@@ -118,7 +115,7 @@ public sealed class CatalogSync(HttpClient http)
         await transaction.CommitAsync(ct);
     }
 
-    public static CatalogMission Parse(string path,string conf,string meta,string? extra,string hash,string? generated=null)
+    public static CatalogMission Parse(string path,string conf,string meta,string? extra,string hash)
     {
         var header=MissionConfig.Read(conf);
         var scenario=Regex.Match(meta,@"\{([0-9A-Fa-f]{16})\}");
@@ -144,7 +141,7 @@ public sealed class CatalogSync(HttpClient http)
         metadata["parserVersion"]=ParserVersion;metadata["world"]=world;
         metadata["sourceKind"]="repository";
         metadata["authoredSource"]=extra is not null?"header-and-sidecar":header.Object("m_GC_Catalog") is not null?"lobby2-header":header.Object("m_GC_Metadata") is not null?"gc-header":"standard-header";
-        if(generated is not null)MissionMetadata.ApplyGenerated(metadata,generated,world,header);
+        if(MissionMetadata.GeneratedFromHeader(header) is { } generated)MissionMetadata.ApplyGenerated(metadata,generated.ToJsonString(),world,header);
         var tags=MissionMetadata.SearchTags(metadata);
         return new(scenario.Groups[1].Value.ToUpperInvariant(),worldId.Groups[1].Value.ToUpperInvariant(),path,name,header.Text("m_sAuthor"),header.Text("m_sDescription"),tags,max,JsonSerializer.SerializeToElement(metadata),hash);
     }
