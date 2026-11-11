@@ -77,6 +77,16 @@ public static class Integrations
         CatalogRoutes.MapSessions(catalog,_=>server);
         catalog.MapGet("/voting", async (HttpContext context, int? offset, CancellationToken ct) =>
             Results.Ok(await MissionVoting.Candidates(context.RequestServices.GetRequiredService<NpgsqlDataSource>(), offset ?? 0, ct)));
+        catalog.MapPost("/selection/query", async (HttpContext context, MissionSelection.Query query, CancellationToken ct) =>
+            Results.Ok(await MissionSelection.Browse(context.RequestServices.GetRequiredService<NpgsqlDataSource>(), query, ct)));
+        catalog.MapGet("/selection/{id:guid}", async (HttpContext context, Guid id, CancellationToken ct) =>
+            await MissionSelection.Detail(context.RequestServices.GetRequiredService<NpgsqlDataSource>(), id, ct) is { } detail
+                ? Results.Ok(detail) : Results.NotFound());
+        catalog.MapPost("/selection/launch", async (HttpContext context, MissionSelection.Launch request, CancellationToken ct) =>
+        {
+            try { return Results.Ok(await MissionSelection.Queue(context.RequestServices.GetRequiredService<NpgsqlDataSource>(), server, request, ct)); }
+            catch (InvalidOperationException) { return Results.Conflict(new { error = "request_conflict" }); }
+        });
         // Proof APIs use the same server-scoped machine credential, not blanket member access.
         app.MapGet("/api/v1/recordings/{recording:guid}", async (HttpContext context, Guid recording) =>
         {

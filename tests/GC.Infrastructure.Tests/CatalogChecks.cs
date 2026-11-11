@@ -43,6 +43,7 @@ internal static class CatalogChecks
    var list=JsonSerializer.SerializeToNode(await MissionCatalog.List(db,null,null,0,default))!;
    Check(list["missions"]!.AsArray().Count==2,"Both scenario definitions imported");
    var id=Guid.Parse(list["missions"]![0]!["id"]!.ToString());
+   await MissionSelectionChecks.Run(db,id);
    var detail=JsonSerializer.SerializeToNode(await MissionCatalog.Detail(db,id,default))!;
    Check(detail["scenarioId"]!.ToString()=="{1111111111111111}Missions/A.conf","Actual scenario path wins over stale meta Name");
    Check(detail["tags"]!.AsArray().Any(t=>t!.ToString()=="Infantry"),"Authored tags imported");
@@ -135,8 +136,11 @@ internal static class CatalogChecks
   Check((await client.GetAsync("/api/admin/game/players?search=Test")).IsSuccessStatusCode && (await client.GetAsync("/api/admin/game/player/sessions?identity=player")).IsSuccessStatusCode,"Developer can browse players and drill into session performance");
   Check((await client.GetAsync("/api/v1/catalog")).StatusCode==HttpStatusCode.Unauthorized,"Website role does not grant machine API access");
   Check((await client.GetAsync("/api/v1/catalog/voting")).StatusCode==HttpStatusCode.Unauthorized,"Website roles cannot access mission voting API");
+  Check((await client.PostAsync("/api/v1/catalog/selection/query",new StringContent("{\"search\":\"\",\"offset\":0}",Encoding.UTF8,"application/json"))).StatusCode==HttpStatusCode.Unauthorized,"Website admin role cannot access game mission selection");
+  Check((await client.PostAsync("/api/v1/catalog/selection/launch",new StringContent(JsonSerializer.Serialize(new MissionSelection.Launch(Guid.NewGuid(),id,"fixture")),Encoding.UTF8,"application/json"))).StatusCode==HttpStatusCode.Unauthorized,"Website admin role cannot queue game launches");
   client.DefaultRequestHeaders.Authorization=new("Bearer",new string('x',40));Check((await client.GetAsync("/api/v1/catalog")).StatusCode==HttpStatusCode.OK,"Server credential reads catalogue");
   Check((await client.GetAsync("/api/v1/catalog/voting")).StatusCode==HttpStatusCode.OK,"Server credential reads voting projection");
+  Check((await client.PostAsync("/api/v1/catalog/selection/query",new StringContent("{\"search\":\"\",\"offset\":0}",Encoding.UTF8,"application/json"))).StatusCode==HttpStatusCode.OK,"Machine credential reads admin mission selection");
   Check((await client.GetAsync("/api/v1/catalog/voting?offset=-1")).StatusCode==HttpStatusCode.BadRequest,"Invalid voting pagination rejected");
   Check((await client.GetAsync($"/api/v1/catalog/{id}/sessions")).StatusCode==HttpStatusCode.OK,"Server credential reads scoped history");
   Check((await client.GetAsync("/api/catalog?offset=-1")).StatusCode==HttpStatusCode.BadRequest,"Invalid pagination rejected");

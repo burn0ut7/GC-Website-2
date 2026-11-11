@@ -21,6 +21,9 @@ GRANT SELECT ON gc.worker_heartbeat TO gc_web;
 -- Developer-only data explorer removal; all predicates and confirmation are enforced by the web routes.
 GRANT DELETE ON gc.ingest_receipts,gc.telemetry_batches,gc.mission_batches,gc.mission_players,gc.session_events TO gc_web;
 GRANT SELECT ON gc.catalog_sources,gc.catalog_missions,gc.catalog_sessions TO gc_web,gc_worker;
+-- FOR SHARE validates an available mission while its launch manifest is snapshotted.
+GRANT UPDATE(available) ON gc.catalog_missions TO gc_web;
+GRANT SELECT,INSERT,UPDATE ON gc.mission_launch_requests TO gc_web;
 GRANT INSERT,UPDATE ON gc.catalog_sources,gc.catalog_missions TO gc_worker;
 GRANT UPDATE ON gc.mission_players TO gc_worker;
 
