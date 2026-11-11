@@ -19,7 +19,8 @@ public static class MissionVoting
                 (SELECT count(*) FROM gc.catalog_sessions s WHERE s.catalog_id=m.id
                     AND s.metadata->>'status' IN ('running','completed')),
                 (SELECT max(started_at) FROM gc.catalog_sessions s WHERE s.catalog_id=m.id
-                    AND s.metadata->>'status' IN ('running','completed'))
+                    AND s.metadata->>'status' IN ('running','completed')),
+                m.max_players, m.metadata->'data'->>'minPlayers'
             FROM gc.catalog_missions m
             WHERE m.listed AND m.available AND m.scenario_guid ~ '^[0-9A-F]{16}$'
                 AND m.scenario_path LIKE '%.conf'
@@ -41,6 +42,8 @@ public static class MissionVoting
                 id = reader.GetGuid(0).ToString(),
                 scenario = "{" + reader.GetString(1) + "}" + reader.GetString(2),
                 name = Short(reader.GetString(3), 100),
+                maxPlayers = reader.IsDBNull(9) ? (int?)null : reader.GetInt32(9),
+                minPlayers = !reader.IsDBNull(10) && int.TryParse(reader.GetString(10), out var minimum) ? (int?)minimum : null,
                 description,
                 tags,
                 thumbnail = Short(reader.GetString(6), 512),

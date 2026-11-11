@@ -32,13 +32,16 @@ internal static class VotingLive
                 var mission = CatalogSync.Parse($"Missions/Voting/Vote{i}.conf", await File.ReadAllTextAsync(header), await File.ReadAllTextAsync(header + ".meta"), null, "fixture");
                 await using var insert = db.CreateCommand("""
                     INSERT INTO gc.catalog_missions(id,repository,scenario_guid,world_guid,scenario_path,name,author,description,tags,max_players,metadata,source_hash)
-                    VALUES($1,'test/voting',$2,$3,$4,$5,'MCP fixture',$6,ARRAY['Test fixture','Infantry'],32,$7::jsonb,'test')
+                    VALUES($1,'test/voting',$2,$3,$4,$5,'MCP fixture',$6,ARRAY['Test fixture','Infantry'],$8,$7::jsonb,'test')
                     """);
                 insert.Parameters.AddWithValue(Guid.NewGuid()); insert.Parameters.AddWithValue(mission.ScenarioGuid);
                 insert.Parameters.AddWithValue(mission.WorldGuid); insert.Parameters.AddWithValue(mission.ScenarioPath);
                 insert.Parameters.AddWithValue(titles[i]);
                 insert.Parameters.AddWithValue(i == 0 ? string.Concat(Enumerable.Repeat("Long description fixture: secure the coastal objective, cover the approach and coordinate resupply with your team. ", 6)) : "Test fixture. Secure the objective and support your team across Arland.");
-                insert.Parameters.AddWithValue(JsonSerializer.Serialize(new { data = mission.Metadata }));
+                var metadata = System.Text.Json.Nodes.JsonNode.Parse(mission.Metadata.GetRawText())!;
+                metadata["minPlayers"] = i == 3 ? 50 : 16;
+                insert.Parameters.AddWithValue(JsonSerializer.Serialize(new { data = metadata }));
+                insert.Parameters.AddWithValue(i == 3 ? 100 : 32);
                 await insert.ExecuteNonQueryAsync();
             }
             var key = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
