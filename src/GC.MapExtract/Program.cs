@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using ReforgerMcp;
+using GC.MapExtract.Archives;
 
 // Offline prototype: explicit installed source roots, no editor, game process or network.
 if (args.Length < 3) throw new ArgumentException("Usage: GC.MapExtract <recipe.json|--list> <private-cache> <pak-root> [pak-root ...]");

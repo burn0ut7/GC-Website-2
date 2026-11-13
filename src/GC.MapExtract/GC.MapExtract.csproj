@@ -5,10 +5,5 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <ReforgerToolsRoot Condition="'$(ReforgerToolsRoot)' == ''">$(MSBuildThisFileDirectory)../../../reforger-script-tools</ReforgerToolsRoot>
   </PropertyGroup>
-  <ItemGroup>
-    <!-- Compile the existing authoritative reader; no Workbench/MCP runtime required. -->
-    <Compile Include="$(ReforgerToolsRoot)/src/ReforgerMcp/PakArchive.cs" Link="PakArchive.cs" />
-  </ItemGroup>
 </Project>
