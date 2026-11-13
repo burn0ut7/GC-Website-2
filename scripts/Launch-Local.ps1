@@ -18,9 +18,10 @@ try {
     }
     # Only this checkout's website processes; never stop all dotnet processes.
     $processes = @(Get-CimInstance Win32_Process | Where-Object {
-        ($_.Name -in @('GC.Web.exe','GC.Worker.exe') -and $_.ExecutablePath.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) -or
+        $commandLine = ([string]$_.CommandLine).Replace('/', '\')
+        ($_.Name -in @('GC.Web.exe','GC.Worker.exe') -and ([string]$_.ExecutablePath).StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) -or
         ($_.Name -eq 'dotnet.exe' -and $_.CommandLine -match 'GC\.(Web|Worker)(\.dll|\.csproj)' -and
-            $_.CommandLine.IndexOf($root + '\',[StringComparison]::OrdinalIgnoreCase) -ge 0)
+            $commandLine.IndexOf($root + '\',[StringComparison]::OrdinalIgnoreCase) -ge 0)
     })
     foreach ($process in $processes) {
         Write-Host "Stopping previous website instance ($($process.ProcessId))..."
