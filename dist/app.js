@@ -41,7 +41,7 @@ function render(){
  youtubePlayers.forEach(player=>player.destroy());youtubePlayers=[];
  if(location.hash!=='#home')history.replaceState(null,'','#home');
  document.body.className='field page-home';
- document.title='Global Conflicts — One-life Arma Reforger';
+ document.title='Global Conflicts';
  app.innerHTML=shell(home());
  window.mountNavigation?.();
  wireLanding();
