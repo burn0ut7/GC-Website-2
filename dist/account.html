@@ -20,7 +20,7 @@
 
 <div class="account-person"><span id="initials" class="account-avatar" aria-hidden="true">GC</span><div><strong id="accountName"></strong><span>Community account</span></div></div>
 
-<nav class="account-navigation" aria-label="Account settings"><a href="#preferences" data-section="preferences" aria-current="page">Profile &amp; preferences</a><a href="#connections" data-section="connections">Connected accounts</a><a href="#roles" data-section="roles">Roles &amp; access</a></nav>
+<nav class="account-navigation" aria-label="Account settings"><a href="#preferences" data-section="preferences" aria-current="page">Profile &amp; preferences</a><a href="#connections" data-section="connections">Connected accounts</a><a href="#donations" data-section="donations">Donation privacy</a><a href="#roles" data-section="roles">Roles &amp; access</a></nav>
 
 <a id="adminLink" class="inspector-link" href="/admin" hidden>Developer tools <span aria-hidden="true">↗</span></a>
 
@@ -50,6 +50,12 @@
 
 </section>
 
+<section id="donations" class="account-section" aria-labelledby="donationTitle" hidden><div class="section-heading"><h2 id="donationTitle">Donation privacy</h2></div>
+<fieldset id="donationPrivacyFields" disabled><legend class="visually-hidden">Donation visibility</legend>
+<div class="settings-block"><label class="donation-choice"><input type="checkbox" id="anonymousDonations"> Keep my donations anonymous</label></div>
+<div class="settings-block"><label class="donation-choice"><input type="checkbox" id="showDonationAmount"> Show my donation amount</label></div>
+</fieldset><p id="donationPrivacyStatus" hidden class="feedback" role="status" aria-live="polite"></p></section>
+
 <section id="roles" class="account-section" aria-labelledby="rolesTitle" hidden><div class="section-heading"><h2 id="rolesTitle">Roles &amp; access</h2><p>Your roles in our Discord server.</p></div><p class="field-help">Website access is assigned through Discord roles.</p><div id="roleList" aria-live="polite"></div><button id="retryRoles" class="connection-button" hidden>Try again</button></section>
 <section id="connections" class="account-section" aria-labelledby="connectionsTitle" hidden>
 
@@ -77,5 +83,5 @@
 
 </div></div>
 
-</main><script src="/account.js?v=patreon-1"></script><script src="/navigation.js?v=1"></script></body></html>
+</main><script src="/account.js?v=quiet-autosave-3"></script><script src="/navigation.js?v=1"></script></body></html>
 

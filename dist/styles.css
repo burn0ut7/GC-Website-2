@@ -76,3 +76,13 @@ footer a{text-decoration:underline;text-underline-offset:4px}
 .field .discord-button{gap:40px;justify-content:flex-start;width:max-content;line-height:20px}
 .discord-icon{display:block;flex:none;width:20px;height:20px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* A fixed-width release countdown; the exact local start remains below it. */
+.session-countdown{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:start;max-width:460px;margin:26px 0 0;color:var(--accent)}
+.clock-unit{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
+.clock-digits{display:block;width:100%;padding:16px 4px;border:1px solid var(--line);border-radius:4px;background:var(--panel);font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:clamp(24px,3.3vw,44px);font-weight:500;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.04em;text-align:center}
+.clock-label{font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.clock-separator{font-family:ui-monospace,Consolas,monospace;font-size:clamp(24px,3.3vw,44px);line-height:1;padding-top:16px;color:var(--muted)}
+.field-join-section .large-session-time{font-size:15px;line-height:1.6;color:var(--muted);margin:20px 0 0}
+@media(max-width:650px){.session-countdown{gap:5px;max-width:400px}.clock-digits{font-size:clamp(24px,7vw,38px);padding:14px 3px}.clock-separator{font-size:clamp(24px,7vw,38px);padding-top:14px}.clock-label{font-size:9px;letter-spacing:.08em}}
+@media(max-width:760px){.field-join-section .large-session-time{margin-bottom:28px}}

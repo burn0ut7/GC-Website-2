@@ -18,7 +18,7 @@ function updateForm(){const changed=dirty();$('#saveSettings').disabled=busy||!c
 
 function showName(){const name=saved?.displayName||me.name;$('#accountName').textContent=name;$('#initials').textContent=Array.from(name).slice(0,2).join('').toUpperCase();}
 
-function showSection(){const section=['connections','roles'].includes(location.hash.slice(1))?location.hash.slice(1):'preferences';for(const name of ['preferences','connections','roles'])$('#'+name).hidden=name!==section;document.querySelectorAll('[data-section]').forEach(link=>{if(link.dataset.section===section)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});}
+function showSection(){const section=['connections','roles','donations'].includes(location.hash.slice(1))?location.hash.slice(1):'preferences';for(const name of ['preferences','connections','roles','donations'])$('#'+name).hidden=name!==section;document.querySelectorAll('[data-section]').forEach(link=>{if(link.dataset.section===section)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});}
 
 async function loadSettings(){
 
@@ -44,7 +44,7 @@ async function loadAccount(){
 
   if(!response.ok)throw new Error('Your account could not be loaded. Try again.');
 
-  me=await response.json();$('#discordId').textContent=me.discordId;$('#accountId').textContent=me.id;$('#adminLink').hidden=!me.isAdmin;showName();$('#authState').hidden=true;$('#profile').hidden=false;showSection();await Promise.all([loadSettings(),loadSteam(),loadRoles(),loadPatreon()]);
+  me=await response.json();$('#discordId').textContent=me.discordId;$('#accountId').textContent=me.id;$('#adminLink').hidden=!me.isAdmin;showName();$('#authState').hidden=true;$('#profile').hidden=false;showSection();await Promise.all([loadSettings(),loadSteam(),loadRoles(),loadPatreon(),loadDonationPrivacy()]);
 
  }catch(error){status.textContent=error.message;$('#retryAccount').hidden=false;}
 
@@ -202,3 +202,35 @@ $('#unlinkPatreon').addEventListener('click',async()=>{
 });
 const patreonResult=new URLSearchParams(location.search).get('patreon');
 if(patreonResult){$('#patreonMessage').textContent=({linked:'Patreon connected.',cancelled:'Patreon linking cancelled.',conflict:'This Patreon account is already linked, or you already have a different Patreon connection.',failed:'Could not verify Patreon. Try again.'})[patreonResult]||'';history.replaceState(null,'','/account.html#connections');}
+
+let donationPrivacy=null,donationPrivacyBusy=false;
+function syncDonationPrivacy(){const anonymous=$('#anonymousDonations').checked;$('#showDonationAmount').disabled=anonymous;if(anonymous)$('#showDonationAmount').checked=false;}
+function fillDonationPrivacy(value){donationPrivacy=value;$('#anonymousDonations').checked=value.anonymous;$('#showDonationAmount').checked=value.showAmount;syncDonationPrivacy();}
+function donationNotice(message){const status=$('#donationPrivacyStatus');status.textContent=message;status.hidden=!message;}
+async function readDonationPrivacy(response){
+ if(!response.ok)throw Error('Request failed');
+ const value=await response.json();
+ if(typeof value?.anonymous!=='boolean'||typeof value?.showAmount!=='boolean')throw Error('Invalid settings');
+ return value;
+}
+async function loadDonationPrivacy(){
+ if(donationPrivacyBusy)return;donationPrivacyBusy=true;$('#donationPrivacyFields').disabled=true;donationNotice('');
+ try{fillDonationPrivacy(await readDonationPrivacy(await fetch('/api/account/donations',{cache:'no-store'})));$('#donationPrivacyFields').disabled=false;}
+ catch{donationNotice('Settings unavailable. Refresh to try again.');}
+ finally{donationPrivacyBusy=false;}
+}
+async function saveDonationPrivacy(){
+ if(donationPrivacyBusy||!donationPrivacy)return;
+ syncDonationPrivacy();const value={anonymous:$('#anonymousDonations').checked,showAmount:$('#showDonationAmount').checked};
+ donationPrivacyBusy=true;$('#donationPrivacyFields').disabled=true;donationNotice('');
+ try{
+  const response=await fetch('/api/account/donations',{method:'PUT',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':await csrf()},body:JSON.stringify(value)});
+  fillDonationPrivacy(await readDonationPrivacy(response));$('#donationPrivacyFields').disabled=false;donationNotice('');
+ }catch{
+  // A lost response may follow a successful write. Read the saved state before re-enabling controls.
+  try{fillDonationPrivacy(await readDonationPrivacy(await fetch('/api/account/donations',{cache:'no-store'})));$('#donationPrivacyFields').disabled=false;donationNotice(donationPrivacy.anonymous===value.anonymous&&donationPrivacy.showAmount===value.showAmount?'':'Couldn’t save. Try again.');}
+  catch{fillDonationPrivacy(donationPrivacy);donationNotice('Couldn’t confirm the change. Refresh to check.');}
+ }finally{donationPrivacyBusy=false;}
+}
+$('#anonymousDonations').addEventListener('change',saveDonationPrivacy);
+$('#showDonationAmount').addEventListener('change',saveDonationPrivacy);

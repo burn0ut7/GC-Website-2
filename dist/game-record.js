@@ -52,10 +52,53 @@ async function showPlayers(){
     p=>row(body,[link(p.name||p.identity,playerUrl(p.identity)),number(p.sessions)]),'No players found.');
 }
 async function showSessions(){
-  heading('Sessions','Recorded plays, newest first.');
-  const body=table(record,['Session','Mission','Server','Outcome','Duration']);
-  await paginate(record,async cursor=>{const p=await get(api+'/sessions?offset='+(cursor??0));return {items:p.sessions,next:p.nextOffset};},
-    s=>{const m=s.metadata||{};row(body,[link(date(s.startedAt),sessionUrl({...s,sessionId:s.missionId})),s.catalogId?link(s.missionName,missionUrl(s.catalogId)):m.missionName,m.serverName,m.outcome,duration(m.observedSeconds)]);},'No sessions recorded.');
+  heading('Sessions','');$('subtitle').hidden=true;
+  const fields=[['time','Time'],['mission','Mission name'],['map','Map'],['outcome','Outcome'],['duration','Duration']];
+  let sort=fields.some(([key])=>key===params.get('sort'))?params.get('sort'):'time';
+  let direction=params.get('direction')==='asc'?'asc':'desc',mine=params.get('mine')==='true',search=params.get('search')||'',cursor=null,version=0;
+  const controls=el('div');controls.className='session-controls';
+  const tabs=el('div');tabs.className='session-tabs';tabs.setAttribute('aria-label','Session scope');
+  const all=el('button','All sessions'),my=el('button','My sessions');tabs.append(all,my);
+  const form=el('form'),input=el('input'),apply=el('button','Search');input.type='search';input.maxLength=200;input.placeholder='Search mission, map or outcome';input.setAttribute('aria-label',input.placeholder);input.value=params.get('search')||'';
+  form.append(input,apply);controls.append(tabs,form);record.append(controls);
+  const notice=el('p');notice.className='muted';notice.hidden=true;record.append(notice);
+  const headers=fields.map(([key,label])=>{const button=el('button',label);button.onclick=()=>{direction=sort===key?(direction==='asc'?'desc':'asc'):(key==='time'?'desc':'asc');sort=key;reload();};return button;});
+  const body=table(record,['',...headers]);body.parentElement.querySelector('th').setAttribute('aria-label','Playback');
+  const empty=el('p'),more=el('button','Show more');empty.hidden=true;more.hidden=true;record.append(empty,more);
+  function draw(s){
+    const m=s.metadata||{},name=s.missionName||m.missionName||'Untitled session',ids=s.recordingIds||[];
+    let play;
+    if(ids.length===1)play=link('▶','/playback?'+new URLSearchParams({server:s.serverId,recording:ids[0]}));
+    else if(ids.length>1)play=link('▶',sessionUrl({...s,sessionId:s.missionId})+'#playback');
+    else {play=el('button','▶');play.disabled=true;}
+    play.className='session-play';play.title=ids.length?'Play '+name:'No recording available';play.setAttribute('aria-label',play.title);
+    row(body,[play,link(date(s.startedAt),sessionUrl({...s,sessionId:s.missionId})),s.catalogId?link(name,missionUrl(s.catalogId)):name,s.map||'—',m.outcome||'—',duration(m.observedSeconds)]);
+  }
+  async function load(reset=false){
+    const request=++version;
+    if(reset){cursor=null;body.replaceChildren();empty.hidden=true;}
+    more.disabled=true;more.hidden=true;$('status').textContent='Loading…';
+    const query=new URLSearchParams({sort,direction,mine:String(mine),search,offset:String(cursor??0)});
+    const address=new URLSearchParams(query);address.delete('offset');history.replaceState(null,'','/sessions?'+address);
+    all.setAttribute('aria-pressed',String(!mine));my.setAttribute('aria-pressed',String(mine));
+    headers.forEach((button,i)=>{const [key,label]=fields[i];button.textContent=label+(sort===key?(direction==='asc'?' ↑':' ↓'):' ↕');button.parentElement.setAttribute('aria-sort',sort===key?(direction==='asc'?'ascending':'descending'):'none');});
+    notice.hidden=true;
+    try{
+      const [data,steam]=await Promise.all([get(api+'/sessions?'+query),mine?get('/api/account/steam'):Promise.resolve(null)]);
+      if(request!==version)return;
+      data.sessions.forEach(draw);cursor=data.nextOffset;more.hidden=cursor==null;
+      empty.textContent=mine?'No matching sessions for your linked game account.':'No matching sessions.';empty.hidden=body.children.length!==0;
+      if(steam && steam.connection.status!=='matched'){
+        const messages={not_linked:'Link your Steam account to find your sessions.',awaiting_server:'Your Steam account is linked. Sessions will appear once a server confirms your game identity.',conflict:'Your game identity could not be matched uniquely. Check your linked account.'};
+        notice.replaceChildren(document.createTextNode(messages[steam.connection.status]||'Your game identity is not matched yet.'),document.createTextNode(' '),link('Account settings','/account.html'));notice.hidden=false;
+      }
+      $('status').textContent='';
+    }catch(error){if(request===version){$('status').textContent=error.message;more.hidden=cursor==null;}}
+    finally{if(request===version)more.disabled=false;}
+  }
+  function reload(){void load(true);}
+  all.onclick=()=>{mine=false;reload();};my.onclick=()=>{mine=true;reload();};form.onsubmit=event=>{event.preventDefault();search=input.value.trim();reload();};
+  input.addEventListener('search',()=>{search=input.value.trim();reload();});more.onclick=()=>void load();await load(true);
 }
 async function showPlayer(identity){
   const p=await get(api+'/player?identity='+enc(identity));heading(p.name||identity,'Player profile · Recorded career totals');
@@ -90,7 +133,7 @@ async function showSession(server,id){
     await paginate(events,async cursor=>{const p=await get(path+'/events?afterSequence='+(cursor??0));return {items:p.events,next:p.nextAfterSequence};},
       e=>row(rows,[duration(e.sessionSeconds),e.type,person(e.actor,e.actorName),person(e.target,e.targetName)]),'No events recorded.');
   }
-  if(summary.recordingIds?.length){const replays=section('Playback');for(const [i,r] of summary.recordingIds.entries())replays.append(link('Recording '+(i+1),'/playback?'+new URLSearchParams({server,recording:r})),document.createTextNode(' '));}
+  if(summary.recordingIds?.length){const replays=section('Playback');replays.id='playback';for(const [i,r] of summary.recordingIds.entries())replays.append(link('Recording '+(i+1),'/playback?'+new URLSearchParams({server,recording:r})),document.createTextNode(' '));}
   const coverage=section('Recording coverage');for(const [key,v] of Object.entries(summary.streams||{}))coverage.append(el('p',key+' · '+(!v.available?'Not recorded':v.droppedRecords||v.allBatchesPresent===false||v.sourceComplete===false?'Partial data':v.closed?'Closed':'In progress')));
 }
-(async()=>{try{const path=location.pathname.replace(/\/$/,'');if(path==='/sessions')await showSessions();else if(path.startsWith('/sessions/')){const [, ,server,id]=path.split('/');await showSession(server,id);}else if(params.has('identity'))await showPlayer(params.get('identity'));else await showPlayers();$('status').textContent='';}catch(e){$('status').textContent=e.message;}})();
+(async()=>{try{const path=location.pathname.replace(/\/$/,'');if(path==='/sessions'){await showSessions();return;}else if(path.startsWith('/sessions/')){const [, ,server,id]=path.split('/');await showSession(server,id);}else if(params.has('identity'))await showPlayer(params.get('identity'));else await showPlayers();$('status').textContent='';}catch(e){$('status').textContent=e.message;}})();

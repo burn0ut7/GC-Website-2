@@ -49,6 +49,8 @@ function sessionDisplay(now = new Date(), zone, clockFormat = 'auto') {
  const rows = sessions.map(date => ({ day: dayFormat.format(date), time: timeFormat.format(date) }));
  const sameTime = rows[0].time === rows[1].time;
  return {
+  nextIso: sessions[0].toISOString(),
+  nextDate: new Intl.DateTimeFormat(undefined, { timeZone, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short', ...clock }).format(sessions[0]),
   days: sameTime ? rows.map(row => row.day).join(' & ') : 'Upcoming sessions',
   time: (sameTime ? rows[0].time : rows.map(row => `${row.day} ${row.time}`).join(' · ')) + (detected ? '' : ' UTC'),
   detail: sessions.map(date => new Intl.DateTimeFormat(undefined, {
@@ -57,9 +59,42 @@ function sessionDisplay(now = new Date(), zone, clockFormat = 'auto') {
  };
 }
 
+let nextSessionStartsAt;
+
+function sessionCountdownParts(target, now = new Date()) {
+ const seconds = Math.max(0, Math.ceil((new Date(target) - now) / 1000));
+ const days = Math.floor(seconds / 86400);
+ const hours = Math.floor(seconds % 86400 / 3600);
+ const minutes = Math.floor(seconds % 3600 / 60);
+ const remaining = seconds % 60;
+ return { days, hours, minutes, seconds: remaining };
+}
+
+function sessionCountdown(target, now = new Date()) {
+ const p = sessionCountdownParts(target, now);
+ return `${p.days}d ${p.hours}h ${p.minutes}m ${p.seconds}s`;
+}
+
+function updateSessionCountdown() {
+ if (!nextSessionStartsAt) return;
+ const now = new Date();
+ if (new Date(nextSessionStartsAt) < now) { updateSessionTimes(); return; }
+ const parts = sessionCountdownParts(nextSessionStartsAt, now);
+ document.querySelectorAll('[data-session-countdown]').forEach(element => {
+  for (const [unit, value] of Object.entries(parts)) {
+   const digits = element.querySelector(`[data-countdown-unit="${unit}"]`);
+   if (digits) digits.textContent = String(value).padStart(2, '0');
+  }
+  element.setAttribute('aria-label', `Next session in ${parts.days} days, ${parts.hours} hours, ${parts.minutes} minutes and ${parts.seconds} seconds`);
+ });
+}
+
 function updateSessionTimes() {
  const preferences = window.gcPreferences;
  const display = sessionDisplay(new Date(),preferences?.timeZone&&preferences.timeZone!=='local'?preferences.timeZone:undefined,preferences?.clockFormat);
+ nextSessionStartsAt = display.nextIso;
+ document.querySelectorAll('[data-next-session-date]').forEach(element => { element.textContent = display.nextDate; element.dateTime = display.nextIso; });
+ updateSessionCountdown();
  document.querySelectorAll('[data-session-days]').forEach(element => { element.textContent = display.days; });
  document.querySelectorAll('[data-session-time]').forEach(element => { element.textContent = display.time; element.title = display.detail; });
 }

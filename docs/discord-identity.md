@@ -107,7 +107,8 @@ was copied into this implementation.
 - The inspector reads the **website's GC database**, not the old local `lobby2`
   proof database. It can legitimately be empty until data is sent to this host.
   All four streams now have projectors; see [mission pipeline](mission-pipeline.md).
-- Eight-hour, secure HTTP-only cookie sessions; OAuth state/correlation and PKCE;
+- Default 30-day persistent, secure HTTP-only cookie sessions with a fixed expiry
+  (no sliding renewal); OAuth state/correlation and PKCE;
   no saved user OAuth tokens. Logout clears the browser cookie, not all copies of a
   stolen session. Global session revocation is future work; admin grant removal
   independently denies privileged reads.

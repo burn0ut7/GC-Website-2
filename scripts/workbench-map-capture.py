@@ -2,7 +2,7 @@
 Open the map's Lobby2 test world, start Play, then run this script. Never saves worlds.
 Uses the configured shared MCP service; does not start a second service or Workbench.
 """
-import argparse, csv, importlib.util, json, time, urllib.request
+import argparse, hashlib, csv, importlib.util, json, time, urllib.request
 from pathlib import Path
 
 class Workbench:
@@ -86,26 +86,31 @@ def run(args):
         else: raise RuntimeError('Height export timed out')
     elif args.phase=='water':
         capture_ocean(wb,metadata['world'],Path(args.output).parent)
-        result=wb.call('GC_TestRiverSurfaceExport')
-        if not result.startswith('vertices='): raise RuntimeError(result)
-        surface_path=profile/f'GC_RiverSurfaces_{slug}.tsv'
-        spec=importlib.util.spec_from_file_location('river_probes',Path(__file__).with_name('river-surface-probes.py'))
-        river_probes=importlib.util.module_from_spec(spec);spec.loader.exec_module(river_probes)
-        lines=river_probes.add_surface_hints(Path(args.input).read_text().splitlines(),surface_path)
-        Path(args.output).with_name('river-surfaces.tsv').write_bytes(surface_path.read_bytes())
-        Path(args.output).with_name('water-probes-with-surfaces.tsv').write_text('\n'.join(lines)+'\n')
+        lines=Path(args.input).read_text().splitlines()
         output=Path(args.output);temporary=output.with_suffix('.partial')
         with temporary.open('w') as combined:
-            for start in range(0,len(lines),25000):
-                (profile/'GC_WaterProbePoints.tsv').write_text('\n'.join(lines[start:start+25000])+'\n')
+            # Full vertical scans take longer than the old riverbed probes.
+            batch_size=10000
+            for start in range(0,len(lines),batch_size):
+                batch=lines[start:start+batch_size]
+                (profile/'GC_WaterProbePoints.tsv').write_text('\n'.join(batch)+'\n')
                 result=wb.call('GC_TestWaterDepthExport')
-                if not result.startswith('samples='): raise RuntimeError(result)
+                if not result.startswith(f'samples={len(batch)} ') or not result.endswith(' method=top-down-water-column-0.5m'):
+                    raise RuntimeError('Workbench returned an incompatible water capture: '+result)
                 sampled=(profile/f'GC_WaterDepth_{slug}.tsv').read_text().splitlines()
-                if len(sampled)-1!=len(lines[start:start+25000]): raise RuntimeError('Incomplete water batch')
+                if len(sampled)-1!=len(batch): raise RuntimeError('Incomplete water batch')
                 combined.write('\n'.join(sampled if start==0 else sampled[1:])+'\n')
-                print(f'Water {min(start+25000,len(lines))}/{len(lines)}',flush=True)
+                completed=start+len(batch)
+                if completed % 20000 == 0 or completed == len(lines):
+                    print(f'Water {completed}/{len(lines)}',flush=True)
             if not lines: combined.write('x\tz\tground\tsurface\ttype\twet\n')
         temporary.replace(output)
+        with output.open('rb') as source:
+            digest=hashlib.file_digest(source,'sha256').hexdigest()
+        receipt=output.with_suffix('.method.json')
+        pending_receipt=receipt.with_suffix('.tmp')
+        pending_receipt.write_text(json.dumps(dict(method='top-down-water-column-0.5m',sha256=digest)))
+        pending_receipt.replace(receipt)
     elif args.phase=='photos':
         queue=json.loads(Path(args.input).read_text())
         spec=importlib.util.spec_from_file_location('map_previews',Path(__file__).with_name('map-previews.py'))

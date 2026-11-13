@@ -8,7 +8,7 @@ In appsettings.Local.json, fill the Patreon section with a v2 ClientId, ClientSe
 
 Register this exact redirect URI in the Patreon client: https://localhost:5081/auth/patreon/callback
 
-Create/manage the client at https://www.patreon.com/portal/registration/register-clients . The campaign owner can retrieve the numeric ID from GET https://www.patreon.com/api/oauth2/v2/campaigns using their creator access token; use the ID for the Global Conflicts campaign. Do not put the creator token into the website config. CampaignUrl is a human reference only; it never authorizes support.
+Create/manage the client at https://www.patreon.com/portal/registration/register-clients . The campaign owner can retrieve the numeric ID from GET https://www.patreon.com/api/oauth2/v2/campaigns using their creator access token; use the ID for the Global Conflicts campaign. For campaign-wide donation totals, supply the creator access token through the server-only Patreon:CreatorAccessToken setting (environment variable Patreon__CreatorAccessToken or a private local configuration). It needs campaigns and campaigns.members scopes. Never put it in tracked files, browser code or logs. CampaignUrl never authorizes support.
 
 Run Launch.cmd after configuring. Link Patreon from Account > Connected accounts. Missing configuration leaves linking disabled, clearly labelled Not configured.
 

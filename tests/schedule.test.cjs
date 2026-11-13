@@ -24,3 +24,12 @@ assert.match(context.sessionDisplay(now, 'UTC', '12h').time, /8:00\s*PM/i);
 assert.equal(context.sessionDisplay(new Date('2026-10-23T00:00:00Z'), 'America/New_York').days, 'Upcoming sessions');
 assert.equal(sessions('2026-11-07T20:00:01Z')[0], '2026-11-08T20:00:00.000Z');
 console.log('PASS: European DST, Eastern transition gap, local date rollover, UTC fallback and elapsed sessions');
+
+assert.equal(context.sessionDisplay(now, 'UTC').nextIso, '2026-11-07T20:00:00.000Z');
+assert.match(context.sessionDisplay(now, 'America/New_York').nextDate, /November 7, 2026/);
+assert.match(context.sessionDisplay(now, 'America/New_York').nextDate, /EST|GMT-5/);
+assert.match(context.sessionDisplay(now, 'Asia/Tokyo').nextDate, /November 8, 2026/);
+assert.equal(context.sessionCountdown('2026-11-14T20:00:00Z', new Date('2026-11-13T18:57:56Z')), '1d 1h 2m 4s');
+assert.equal(context.sessionCountdown('2026-11-14T20:00:00Z', new Date('2026-11-14T20:00:00Z')), '0d 0h 0m 0s');
+assert.equal(context.sessionCountdown('2026-11-14T20:00:00Z', new Date('2026-11-14T20:00:01Z')), '0d 0h 0m 0s');
+console.log('PASS: exact next-session date, timezone date rollover and countdown boundaries');

@@ -75,7 +75,7 @@ internal static class IdentityChecks
             await Check(client, "/api/account/settings", 401);
             await Check(client,"/api/account/patreon",401);
             await Check(client, "/api/admin/accounts", 401);
-            await CheckNavigation(client, false, false);
+            await CheckNavigation(client, true, false);
             await Check(client, "/auth/discord/callback?code=admin&state=forged", 400);
             var member = await Login(client, "member");
             client.DefaultRequestHeaders.Add("Cookie", member);
@@ -248,6 +248,9 @@ internal static class IdentityChecks
         var cookie = response.Headers.GetValues("Set-Cookie").Single(x => x.StartsWith("__Host-GC.Session="));
         if (!cookie.Contains("secure", StringComparison.OrdinalIgnoreCase) || !cookie.Contains("httponly", StringComparison.OrdinalIgnoreCase))
             throw new Exception("Session cookie protections missing");
+        var parsed = Microsoft.Net.Http.Headers.SetCookieHeaderValue.Parse(cookie);
+        if (parsed.Expires is not {} expires || Math.Abs((expires - DateTimeOffset.UtcNow).TotalDays - 30) > 0.001)
+            throw new Exception("Session cookie must persist for 30 days");
         return cookie.Split(';')[0];
     }
 

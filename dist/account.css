@@ -61,3 +61,5 @@
 .provider-mark:has(img){position:relative}
 .provider-mark:has(img)::after{content:"";width:28px;height:28px;background:var(--provider-color);mask:var(--provider-logo) center/contain no-repeat}
 .provider-mark img{position:absolute;opacity:0}
+
+.donation-choice{display:flex!important;align-items:center;gap:12px}.donation-choice input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex-shrink:0}

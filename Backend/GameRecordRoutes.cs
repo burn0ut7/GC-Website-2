@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using GC.Infrastructure;
 using Npgsql;
 
@@ -19,8 +20,17 @@ public static class GameRecordRoutes
         });
         routes.MapGet("/sessions/{server:guid}/{session:guid}",async (Guid server,Guid session,HttpContext context,CancellationToken ct)=>
             await GameRecords.Session(context.RequestServices.GetRequiredService<NpgsqlDataSource>(),server,session,ct) is {} record?Results.Ok(record):Results.NotFound());
-        routes.MapGet("/sessions",async(int? offset,HttpContext context,CancellationToken ct)=>
-            offset is <0 or >100000?Results.BadRequest():Results.Ok(await MissionCatalog.Sessions(context.RequestServices.GetRequiredService<NpgsqlDataSource>(),null,null,offset??0,ct)));
+        routes.MapGet("/sessions",async(int? offset,string? search,string? sort,string? direction,bool? mine,HttpContext context,CancellationToken ct)=>
+        {
+            if (offset is <0 or >100000 || search?.Length>200 || sort is not (null or "time" or "mission" or "map" or "outcome" or "duration") || direction is not (null or "asc" or "desc")) return Results.BadRequest();
+            Guid? user=null;
+            if (mine == true)
+            {
+                if (!Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier),out var id)) return Results.Unauthorized();
+                user=id;
+            }
+            return Results.Ok(await MissionCatalog.Sessions(context.RequestServices.GetRequiredService<NpgsqlDataSource>(),null,null,offset??0,ct,search??"",sort??"time",direction=="asc",user,MapPackages.FromConfiguration(app.Configuration).AvailableMaps(app.Environment.WebRootPath).Select(map => new SessionMapIdentity((string)map!["name"]!, (string)map["worldSuffix"]!)).ToArray()));
+        });
         routes.MapGet("/players",async(string? search,int? offset,HttpContext context,CancellationToken ct)=>
             search?.Length>200 || offset is <0 or >100000?Results.BadRequest():Results.Ok(await GameRecords.Players(context.RequestServices.GetRequiredService<NpgsqlDataSource>(),search??"",offset??0,ct)));
         routes.MapGet("/player",async(string identity,HttpContext context,CancellationToken ct)=>

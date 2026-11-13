@@ -21,7 +21,7 @@ public static class Identity
             return Notice("Sign-in unavailable", "Discord sign-in is not configured.", 503);
         if (!context.Request.IsHttps)
             return Notice("Secure connection required", "Open the HTTPS website to sign in.", 400);
-        return Results.Challenge(new AuthenticationProperties { RedirectUri = destination }, ["discord"]);
+        return Results.Challenge(new AuthenticationProperties { RedirectUri = destination, IsPersistent = true }, ["discord"]);
     }
 
     private static IResult Notice(string title, string message, int status, bool retry = false) =>
@@ -35,13 +35,14 @@ public static class Identity
     {
         SteamLink.Configure(builder.Services);
         PatreonLink.Configure(builder.Services);
+        builder.Services.AddHostedService<DonationRefresh>();
         var authentication = builder.Services.AddAuthentication("gc-session").AddCookie("gc-session", options =>
         {
             options.Cookie.Name = "__Host-GC.Session";
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             options.Cookie.HttpOnly = true;
             options.Cookie.SameSite = SameSiteMode.Lax;
-            options.ExpireTimeSpan = TimeSpan.FromHours(8);
+            options.ExpireTimeSpan = TimeSpan.FromDays(30);
             options.SlidingExpiration = false;
             options.Events.OnRedirectToLogin = context =>
             {
@@ -102,7 +103,8 @@ public static class Identity
                 var subject = json.RootElement.GetProperty("id").GetString()!;
                 var name = json.RootElement.GetProperty("username").GetString()!;
                 var database = context.HttpContext.RequestServices.GetRequiredService<NpgsqlDataSource>();
-                var id = await Accounts.SignInDiscord(database, subject, name, context.HttpContext.RequestAborted);
+                var avatar = json.RootElement.TryGetProperty("avatar", out var avatarValue) ? avatarValue.GetString() : null;
+                var id = await Accounts.SignInDiscord(database, subject, name, context.HttpContext.RequestAborted, avatar);
                 context.Identity!.AddClaim(new Claim(ClaimTypes.NameIdentifier, id.ToString()));
                 context.Identity.AddClaim(new Claim(ClaimTypes.Name, name));
             };
@@ -129,6 +131,7 @@ public static class Identity
         SteamLink.Map(app);
         PatreonLink.Map(app);
         SiteNavigation.Map(app);
+        DonationRoutes.Map(app);
         app.MapGet("/account.html", () => Results.File(Path.Combine(app.Environment.WebRootPath, "account.html"), "text/html"))
             .WithMetadata(new ProtectedPage()).RequireAuthorization();
         app.MapGet("/auth/discord", (HttpContext context) => StartDiscord(context, app.Configuration, context.Request.PathBase + "/account.html"));

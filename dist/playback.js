@@ -152,10 +152,8 @@ async function get(url, signal) {
 }
 const calendar = recordingCalendar($("recordingCalendar"), () => list());
 let recordingBusy = 0;
-let recordingMaps = [];
 function busyRecording() {
   recordingBusy++;
-  $("recordingLoading").hidden = false;
   $("reload").classList.add("refreshing");
   $("reload").disabled = true;
   $("older").disabled = true;
@@ -163,7 +161,6 @@ function busyRecording() {
   $("status").classList.remove("recording-error");
   return () => {
     if (--recordingBusy) return;
-    $("recordingLoading").hidden = true;
     $("reload").classList.remove("refreshing");
     $("reload").disabled = false;
     $("older").disabled = false;
@@ -171,9 +168,7 @@ function busyRecording() {
   };
 }
 function recordingTitle(r) {
-  const world = (r.world || "").toLowerCase().replaceAll("\\", "/");
-  const map = recordingMaps.find(m => world.endsWith(m.worldSuffix.toLowerCase().replaceAll("\\", "/")));
-  return [r.missionName?.trim(), map?.name || label(r.world) || "Unknown map"].filter(Boolean).join(" · ");
+  return r.missionName?.trim() || "Unnamed mission";
 }
 function recordingDate(r) {
   const date = new Date(r.startedAt * 1000);
@@ -201,8 +196,6 @@ function controls(on) {
 async function list(append = false) {
   const finished = busyRecording();
   try {
-    // Optional map names must not prevent recordings from loading.
-    recordingMaps = await get("/api/playback/maps").catch(() => []);
     const result = await get(
       `/api/admin/recordings?offset=${append ? nextOffset : 0}${recordingDateQuery()}`,
     );
@@ -417,7 +410,7 @@ function mapNotice(world, failed = false, raster = false) {
     ? "Using the game map texture. Import a full map package for terrain detail and object previews."
     : failed
     ? "Playback can continue without the background. Reload to retry, or check the map package."
-    : `This replay has no map package${world ? ": " + world : "; its world was not recorded"}. Actors and events can still play on the coordinate grid.`;
+    : `This replay has no map package${world ? ": " + world : "; its world was not recorded"}. Actors and events can still play. Enable Show grid under Map for coordinates.`;
   $("mapNoticeAction").textContent = failed ? "Manage maps →" : "Add map package →";
   $("mapNoticeAction").href = "/admin?world=" + encodeURIComponent(world || "") + "#maps";
 }
@@ -1026,36 +1019,38 @@ function drawNow() {
     ctx.closePath(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
     ctx.restore();
   }
-  const spacing = Math.pow(10, Math.ceil(Math.log10(65 / view.scale))),
-    left = world(0, height),
-    right = world(width, 0);
-  ctx.strokeStyle = "#afc7a02b";
-  ctx.lineWidth = 1;
-  ctx.font = "10px system-ui";
-  ctx.fillStyle = "#b0bbaa";
-  for (
-    let x = Math.ceil(left[0] / spacing) * spacing;
-    x < right[0];
-    x += spacing
-  ) {
-    const p = screen([x, 0, 0]);
-    ctx.beginPath();
-    ctx.moveTo(p[0], 0);
-    ctx.lineTo(p[0], height);
-    ctx.stroke();
-    ctx.fillText(x.toFixed(0), p[0] + 3, height - 5);
-  }
-  for (
-    let z = Math.ceil(left[2] / spacing) * spacing;
-    z < right[2];
-    z += spacing
-  ) {
-    const p = screen([0, 0, z]);
-    ctx.beginPath();
-    ctx.moveTo(0, p[1]);
-    ctx.lineTo(width, p[1]);
-    ctx.stroke();
-    ctx.fillText(z.toFixed(0), 3, p[1] - 4);
+  if (checked("showGrid")) {
+    const spacing = Math.pow(10, Math.ceil(Math.log10(65 / view.scale))),
+      left = world(0, height),
+      right = world(width, 0);
+    ctx.strokeStyle = "#afc7a02b";
+    ctx.lineWidth = 1;
+    ctx.font = "10px system-ui";
+    ctx.fillStyle = "#b0bbaa";
+    for (
+      let x = Math.ceil(left[0] / spacing) * spacing;
+      x < right[0];
+      x += spacing
+    ) {
+      const p = screen([x, 0, 0]);
+      ctx.beginPath();
+      ctx.moveTo(p[0], 0);
+      ctx.lineTo(p[0], height);
+      ctx.stroke();
+      ctx.fillText(x.toFixed(0), p[0] + 3, height - 5);
+    }
+    for (
+      let z = Math.ceil(left[2] / spacing) * spacing;
+      z < right[2];
+      z += spacing
+    ) {
+      const p = screen([0, 0, z]);
+      ctx.beginPath();
+      ctx.moveTo(0, p[1]);
+      ctx.lineTo(width, p[1]);
+      ctx.stroke();
+      ctx.fillText(z.toFixed(0), 3, p[1] - 4);
+    }
   }
   if (checked("terrainSymbols"))
     drawMapSymbols(ctx, mapSymbols, view, width, height, iconImage);
@@ -1067,35 +1062,6 @@ function drawNow() {
     const state = actorAt(model, actor, clock, checked("interpolate"));
     if (!state?.position || !visible(state)) continue;
     const color = colorFor(state.faction);
-    if (checked("trails")) {
-      ctx.beginPath();
-      let previous = null;
-      for (const row of actor.positions) {
-        if (row.timeMs > clock) break;
-        if (row.timeMs < clock - 3000) continue;
-        const p = screen(position(row.data));
-        const gap = model.gaps.some(
-          (g) =>
-            previous &&
-            g.data.fromMs <= row.timeMs &&
-            g.data.untilMs >= previous.timeMs,
-        );
-        if (
-          !previous ||
-          row.data.discontinuity ||
-          row.timeMs - previous.timeMs > 5000 ||
-          gap
-        )
-          ctx.moveTo(...p);
-        else ctx.lineTo(...p);
-        previous = row;
-      }
-      ctx.strokeStyle = color;
-      ctx.globalAlpha = 0.5;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
     const p = screen(state.position);
     const showIcon = checked("showActorIcons");
     let labelBounds = null;
@@ -1407,6 +1373,7 @@ $("none").onclick = () => {
 };
 $("resetFilters").onclick = () => {
   preferences.reset();
+  draw();
   factionColors.clear();
   renderCheckpoints();
   if (model) {
@@ -1435,7 +1402,6 @@ for (const id of [
   "annotations",
   "vegetation",
   "labels",
-  "trails",
   "shots",
   "facing",
   "showActorIcons",
@@ -1453,6 +1419,7 @@ for (const id of [
 ])
   $(id).onchange = update;
 $("sceneryOpacity").oninput = draw;
+$("showGrid").onchange = draw;
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) pause();
 });

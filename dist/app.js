@@ -1,31 +1,18 @@
 const app=document.querySelector('#app');
 function shell(content){
- return `<div class="field-shell"><header class="quiet-header"><a href="#home" class="quiet-brand">Global Conflicts</a><a class="header-account" id="headerAccount" href="/account.html" aria-label="Sign in with Discord"><img src="discord.svg" alt="" width="20" height="20"><span>Sign in<span class="sign-in-provider"> with Discord</span></span></a></header><main>${content}</main><footer><span>Global Conflicts</span><a href="/account.html">Your account</a><a href="https://discord.globalconflicts.net" target="_blank" rel="noopener">Discord ↗</a></footer></div>`;
+ return `<div class="field-shell"><header class="quiet-header"><a href="#home" class="quiet-brand">Global Conflicts</a></header><main>${content}</main><footer><span>Global Conflicts</span><a href="/account.html">Account</a><a href="https://discord.globalconflicts.net" target="_blank" rel="noopener">Discord ↗</a></footer></div>`;
 }
-async function updateAccountLink(){
- const link=document.querySelector('#headerAccount');
- if(!link)return;
+async function loadAccountPreferences(){
+ const shell=document.querySelector('.field-shell');
+ if(!shell)return;
  window.gcPreferences=undefined;
  updateSessionTimes();
- link.removeAttribute('title');
- link.href='/account.html';
- link.setAttribute('aria-label','Sign in with Discord');
- link.querySelector('span').innerHTML='Sign in<span class="sign-in-provider"> with Discord</span>';
  try{
   const response=await fetch('/api/me',{cache:'no-store'});
-  if(!link?.isConnected)return;
-  if(response.ok){
-   link.querySelector('span').textContent='Your account';link.setAttribute('aria-label','Your account');
-   const settings=await fetch('/api/account/settings',{cache:'no-store'});
-   if(settings.ok&&link.isConnected){window.gcPreferences=await settings.json();link.title=window.gcPreferences.displayName||'Your account';updateSessionTimes();}
-   return;
-  }
-  if(response.status!==401)return;
-  const status=await fetch('/api/auth/status',{cache:'no-store'});
-  if(!status.ok)return;
-  const config=await status.json();
-  if(link.isConnected&&config.discordEnabled&&config.https)link.href='/auth/discord';
- }catch{/* The account page explains setup or temporary availability. */}
+  if(!shell.isConnected||!response.ok)return;
+  const settings=await fetch('/api/account/settings',{cache:'no-store'});
+  if(settings.ok&&shell.isConnected){window.gcPreferences=await settings.json();updateSessionTimes();}
+ }catch{/* Keep default preferences when the account is unavailable. */}
 }
 let youtubeApiPromise;
 let youtubePlayers=[];
@@ -58,12 +45,12 @@ function render(){
  app.innerHTML=shell(home());
  window.mountNavigation?.();
  wireLanding();
- updateAccountLink();
+ loadAccountPreferences();
  updateSessionTimes();
  window.scrollTo(0,0);
 }
 function home(){
- return `<section class="field-opening"><div class="opening-copy"><h1>One life.<br><span>Arma Reforger.</span></h1><p>An international Arma community with 15+ years of tactical teamwork and good times—no ranks, no attendance requirements, just join and play when you can.</p><p class="opening-time"><span data-session-days></span> · <span data-session-time></span></p><a class="btn discord-button" href="https://discord.globalconflicts.net" target="_blank" rel="noopener"><img class="discord-icon" src="discord.svg" alt="" width="20" height="20">Join us on Discord ↗</a></div><figure class="opening-media"><img src="squad.jpg" alt="Two soldiers advancing together beside a building, from the Global Conflicts community archive" fetchpriority="high"></figure><button class="scroll-invitation" id="exploreBelow">How to play <span aria-hidden="true">↓</span></button></section><section id="howWePlay" class="field-story"><div class="story-video" id="introPlayer"><button id="playIntro" aria-label="Play the Global Conflicts introduction"><img src="intro-thumbnail.jpg" alt="Global Conflicts guide to joining and playing Arma Reforger"><span class="story-play" aria-hidden="true">▶</span></button></div></section><section class="field-join-section"><div><h2>Your next<br>session starts here.</h2><p class="large-session-time"><span data-session-days></span><br><span data-session-time></span></p></div><div class="join-copy"><p>Discord is where we meet, plan, and play. Get your server details and mods, ask questions, and find your squad.</p><p>Bring a working microphone and a mature attitude. We’ll help you get started.</p><a class="btn discord-button" href="https://discord.globalconflicts.net" target="_blank" rel="noopener"><img class="discord-icon" src="discord.svg" alt="" width="20" height="20">Join us on Discord ↗</a></div></section>`;
+ return `<section class="field-opening"><div class="opening-copy"><h1>One life.<br><span>Arma Reforger.</span></h1><p>An international Arma community with 15+ years of tactical teamwork and good times—no ranks, no attendance requirements, just join and play.</p><p class="opening-time"><span data-session-days></span> · <span data-session-time></span></p><a class="btn discord-button" href="https://discord.globalconflicts.net" target="_blank" rel="noopener"><img class="discord-icon" src="discord.svg" alt="" width="20" height="20">Join us on Discord ↗</a></div><figure class="opening-media"><img src="squad.jpg" alt="Two soldiers advancing together beside a building, from the Global Conflicts community archive" fetchpriority="high"></figure><button class="scroll-invitation" id="exploreBelow">How to play <span aria-hidden="true">↓</span></button></section><section id="howWePlay" class="field-story"><div class="story-video" id="introPlayer"><button id="playIntro" aria-label="Play the Global Conflicts introduction"><img src="intro-thumbnail.jpg" alt="Global Conflicts guide to joining and playing Arma Reforger"><span class="story-play" aria-hidden="true">▶</span></button></div></section><section class="field-join-section"><div><h2>Your next<br>session starts:</h2><div class="session-countdown" data-session-countdown role="timer" aria-live="off" aria-label="Time until the next session"><span class="clock-unit" aria-hidden="true"><span class="clock-digits" data-countdown-unit="days">00</span><span class="clock-label">Days</span></span><span class="clock-separator" aria-hidden="true">:</span><span class="clock-unit" aria-hidden="true"><span class="clock-digits" data-countdown-unit="hours">00</span><span class="clock-label">Hours</span></span><span class="clock-separator" aria-hidden="true">:</span><span class="clock-unit" aria-hidden="true"><span class="clock-digits" data-countdown-unit="minutes">00</span><span class="clock-label">Minutes</span></span><span class="clock-separator" aria-hidden="true">:</span><span class="clock-unit" aria-hidden="true"><span class="clock-digits" data-countdown-unit="seconds">00</span><span class="clock-label">Seconds</span></span></div><p class="large-session-time"><time data-next-session-date></time></p></div><div class="join-copy"><p>Discord is where our community comes together to chat, ask questions, and help each other out.</p><a class="btn discord-button" href="https://discord.globalconflicts.net" target="_blank" rel="noopener"><img class="discord-icon" src="discord.svg" alt="" width="20" height="20">Join us on Discord ↗</a></div></section>`;
 }
 function wireLanding(){
  document.querySelector('#exploreBelow')?.addEventListener('click',()=>document.querySelector('#howWePlay').scrollIntoView({behavior:window.gcPreferences?.reduceMotion||window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
@@ -72,5 +59,6 @@ function wireLanding(){
 window.addEventListener('hashchange',render);render();
 
 setInterval(updateSessionTimes, 60000);
+setInterval(()=>{if(!document.hidden)updateSessionCountdown();}, 1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateSessionTimes()});
-window.addEventListener('pageshow',event=>{if(event.persisted)updateAccountLink()});
+window.addEventListener('pageshow',event=>{if(event.persisted)loadAccountPreferences()});

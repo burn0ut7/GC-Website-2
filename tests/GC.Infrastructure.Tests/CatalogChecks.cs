@@ -133,6 +133,9 @@ internal static class CatalogChecks
   client.DefaultRequestHeaders.Add("X-Test-Role","Member");Check((await client.GetAsync($"/api/admin/catalog/{id}/sessions")).StatusCode==HttpStatusCode.Forbidden,"Member cannot read restricted history");
   Check((await client.GetAsync("/api/admin/game/sessions")).StatusCode==HttpStatusCode.Forbidden,"Session directory keeps the history permission");
   client.DefaultRequestHeaders.Remove("X-Test-Role");client.DefaultRequestHeaders.Add("X-Test-Role","Developer");Check((await client.GetAsync($"/api/admin/catalog/{id}/sessions")).StatusCode==HttpStatusCode.OK,"Developer can read history");
+  Check((await client.GetAsync("/api/admin/game/sessions?sort=map&direction=asc&search=Test")).IsSuccessStatusCode,"Session filters accepted");
+  Check((await client.GetAsync("/api/admin/game/sessions?sort=invalid")).StatusCode==HttpStatusCode.BadRequest,"Invalid session sort rejected");
+  Check((await client.GetAsync("/api/admin/game/sessions?direction=invalid")).StatusCode==HttpStatusCode.BadRequest,"Invalid session direction rejected");
   Check((await client.GetAsync("/api/admin/game/players?search=Test")).IsSuccessStatusCode && (await client.GetAsync("/api/admin/game/player/sessions?identity=player")).IsSuccessStatusCode,"Developer can browse players and drill into session performance");
   Check((await client.GetAsync("/api/v1/catalog")).StatusCode==HttpStatusCode.Unauthorized,"Website role does not grant machine API access");
   Check((await client.GetAsync("/api/v1/catalog/voting")).StatusCode==HttpStatusCode.Unauthorized,"Website roles cannot access mission voting API");

@@ -19,6 +19,10 @@ if (Array.IndexOf(args,"--mission-source") is var sourceAt && sourceAt>=0)
     return;
 }
 
+if (args.Contains("--session-directory")) { await SessionDirectoryChecks.Run(); return; }
+
+if (args.Contains("--sessions")) { await SessionChecks.Run(); return; }
+
 if (args.Contains("--account-roles")) { await AccountRoleChecks.Run(); return; }
 
 if (args.Contains("--voice")) { VoiceChecks.Run(); return; }
@@ -38,6 +42,7 @@ try
     var settings = new NpgsqlConnectionStringBuilder(adminConnection) { Database = name, Pooling = false };
     await using var database = Database.Open(settings.ConnectionString);
     await Task.WhenAll(Database.Migrate(database), Database.Migrate(database));
+    if (args.Contains("--donations")) { await DonationChecks.Run(database); return; }
     await Database.Migrate(database);
     Check(await Database.IsReady(database, default), "Concurrent and repeated migrations are idempotent");
     await using (var change = database.CreateCommand("UPDATE gc.schema_migrations SET checksum='changed'"))

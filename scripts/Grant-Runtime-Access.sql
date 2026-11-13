@@ -33,3 +33,6 @@ GRANT SELECT ON gc.game_identity_observations,gc.verified_game_identities TO gc_
 GRANT SELECT,INSERT,UPDATE ON gc.game_identity_observations TO gc_worker;
 
 GRANT SELECT,INSERT,UPDATE,DELETE ON gc.patreon_connections,gc.patreon_link_challenges TO gc_web;
+
+GRANT SELECT,INSERT,UPDATE ON gc.donation_preferences,gc.patreon_campaign_sync TO gc_web;
+GRANT SELECT,INSERT,UPDATE,DELETE ON gc.patreon_campaign_members TO gc_web;

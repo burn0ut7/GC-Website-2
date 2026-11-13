@@ -12,6 +12,7 @@ namespace GC.Web;
 // Immutable asset directories plus one atomic registry replacement. No game runtime on the server.
 public sealed class MapPackages(string root)
 {
+    private string rootPath => root;
     public const long UploadLimit = 256L * 1024 * 1024;
     private readonly SemaphoreSlim gate = new(1);
     private static readonly Regex Id = new("^[a-z0-9][a-z0-9-]{0,63}$");
@@ -195,14 +196,12 @@ public sealed class MapPackages(string root)
         }
     }
 
-    public static void Map(WebApplication app)
-    {
-        var root = Path.GetFullPath(app.Configuration["Maps:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GCWebsite", "Maps"));
-        var store = new MapPackages(root);
-        JsonArray AvailableMaps()
+    public static MapPackages FromConfiguration(IConfiguration configuration) => new(Path.GetFullPath(configuration["Maps:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GCWebsite", "Maps")));
+
+    public JsonArray AvailableMaps(string webRoot)
         {
-            var maps = JsonNode.Parse(File.ReadAllText(Path.Combine(app.Environment.WebRootPath, "playback-maps.json")))!.AsArray();
-            foreach (var record in store.Active())
+            var maps = JsonNode.Parse(File.ReadAllText(Path.Combine(webRoot, "playback-maps.json")))!.AsArray();
+            foreach (var record in Active())
             {
                 var map = record!["map"]!;
                 foreach (var world in WorldSuffixes(map))
@@ -216,6 +215,12 @@ public sealed class MapPackages(string root)
             maps = PreferDetailed(maps);
             return maps;
         }
+
+    public static void Map(WebApplication app)
+    {
+        var store = FromConfiguration(app.Configuration);
+        var root = store.rootPath;
+        JsonArray AvailableMaps() => store.AvailableMaps(app.Environment.WebRootPath);
         app.MapGet("/api/playback/maps", () => Results.Json(AvailableMaps())).RequireAuthorization(SiteNavigation.AdminPolicy);
         // Public catalogue needs map identities, never protected replay assets.
         app.MapGet("/api/catalog/maps", () => Results.Json(AvailableMaps().Select(map => new {

@@ -117,8 +117,15 @@ are never attached to a detailed map. This first slice is an explicit archive
 import, not a background scan of arbitrary newly installed mods.
 
 
-### Deep river coverage
+### Deep inland water
 
-Water capture exports the live `RiverEntity.GetOutlinePoints` geometry, interpolates surface-height hints at the existing probe locations, and searches vertically from terrain toward each hint in 0.5 m steps. `ChimeraWorldUtils.TryGetWaterSurface` remains the authority for coverage and final surface height; the outline does not paint water by itself. Depth is measured from the confirmed surface to `GetSurfaceY`, so objects and vegetation cannot occlude it. Points without river hints retain the original terrain-level query (including ponds).
+For each native water footprint pixel, Workbench probes downward from the
+capture ceiling to the live terrain height in 0.5 m steps. The ceiling uses
+the map's upper elevation plus a 512 m margin. The first engine-confirmed
+water surface above the bed sets the depth, regardless of the water volume's
+thickness relative to the bed. The final sample is taken at the terrain
+height so the scan covers the shallow edge as well.
 
-This fixes riverbeds extending below the engine's finite water volumes. Anizay's western river at X=1736.25, Z=3001.25 has terrain Y=127.25 and water Y=139.345; the native query reported water only near the surface (volume half-height 1.5 m), not at the bed. The corrected 2026-11-03 capture retained all 25,273 formerly detected wet probes and recovered 14,297 more. Re-export water before packaging existing maps; a website rebuild alone cannot repair old exported layers. `river-surfaces.tsv` and `water-probes-with-surfaces.tsv` are retained with the capture for verification. Very narrow features and water volumes thinner than the sampling step remain resolution limits.
+Re-export the water phase to update existing maps. Water bodies outside
+the native footprints and volumes narrower than the sampling interval can
+still be missed.

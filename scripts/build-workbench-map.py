@@ -90,7 +90,14 @@ def build(args):
             provenance=dict(world=meta['world'],oceanBaseHeight=ocean_level,topographySha256=recipe['topographySha256'],heightSha256=hashlib.sha256(heights.read_bytes()).hexdigest(),sourceFingerprint=manifest['fingerprint'],groundCellMetres=4,layerPixels=4096,waterProbeSpacingMetres=extent/4096))
         if recipe.get('worldAliases'):
             config['worldAliases']=recipe['worldAliases']
-        if (root/'river-surfaces.tsv').exists():
+        receipt=root/'water-depth.method.json'
+        if receipt.is_file():
+            capture=json.loads(receipt.read_text())
+            with (root/'water-depth.tsv').open('rb') as samples:
+                if hashlib.file_digest(samples,'sha256').hexdigest() != capture['sha256']:
+                    raise ValueError('Water capture receipt does not match samples')
+            config['provenance']['waterProbeMethod']=capture['method']
+        elif (root/'river-surfaces.tsv').exists():
             config['provenance']['riverSurfacesSha256']=hashlib.sha256((root/'river-surfaces.tsv').read_bytes()).hexdigest()
             config['provenance']['waterProbeMethod']='terrain-to-river-surface-column-0.5m'
         (root/'dist/playback-maps.json').write_text(json.dumps([config],indent=2))

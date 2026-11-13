@@ -7,6 +7,8 @@ namespace GC.Infrastructure;
 public sealed record CatalogMission(string ScenarioGuid, string WorldGuid, string ScenarioPath,
     string Name, string Author, string Description, string[] Tags, int? MaxPlayers, JsonElement Metadata, string SourceHash);
 
+public sealed record SessionMapIdentity(string Name, string WorldSuffix);
+
 public static class MissionCatalog
 {
     public static async Task<object> List(NpgsqlDataSource db, string? search, string? tag, int offset, CancellationToken ct)
@@ -73,10 +75,12 @@ public static class MissionCatalog
             playerSeconds=r.IsDBNull(3)?(double?)null:r.GetDouble(3),kills=r.IsDBNull(4)?(decimal?)null:r.GetFieldValue<decimal>(4),deaths=r.IsDBNull(5)?(decimal?)null:r.GetFieldValue<decimal>(5)};
     }
 
-    public static async Task<object> Sessions(NpgsqlDataSource db,Guid? catalog,Guid? server,int offset,CancellationToken ct)
+    public static async Task<object> Sessions(NpgsqlDataSource db,Guid? catalog,Guid? server,int offset,CancellationToken ct, string search = "", string sort = "time", bool ascending = false, Guid? user = null, SessionMapIdentity[]? maps = null)
     {
+        var order = sort switch { "time" => "started", "mission" => "lower(coalesce(m.name,s.metadata->>'missionName'))", "map" => "lower(coalesce(map_identity.name,nullif(m.metadata->'data'->>'map','')))", "outcome" => "lower(s.metadata->>'outcome')", "duration" => "(s.metadata->>'observedSeconds')::double precision", _ => throw new ArgumentException("Invalid sort") };
+        if (search.Length > 200) throw new ArgumentException("Invalid search");
         if(offset<0||offset>100000)throw new ArgumentException("Invalid page");
-        await using var q=db.CreateCommand("""
+        await using var q=db.CreateCommand($"""
             WITH ids AS (
                 SELECT server_id,mission_id FROM gc.catalog_sessions WHERE ($1::uuid IS NULL OR catalog_id=$1) AND ($2::uuid IS NULL OR server_id=$2)
                 UNION SELECT server_id,mission_id FROM gc.mission_batches WHERE $1 IS NULL AND ($2 IS NULL OR server_id=$2)
@@ -84,18 +88,31 @@ public static class MissionCatalog
             )
             SELECT i.server_id,i.mission_id,coalesce(s.started_at,b.started_at) AS started,s.metadata,coalesce(s.link_status,'unlinked'),
                 ARRAY(SELECT DISTINCT recording_id FROM gc.telemetry_batches t WHERE t.server_id=i.server_id AND t.mission_id=i.mission_id ORDER BY recording_id LIMIT 50),
-                m.id,m.name
+                m.id,m.name,coalesce(map_identity.name,nullif(m.metadata->'data'->>'map',''))
             FROM ids i LEFT JOIN gc.catalog_sessions s USING(server_id,mission_id)
-            LEFT JOIN LATERAL (SELECT min(started_at) AS started_at FROM gc.mission_batches b WHERE s.started_at IS NULL AND b.server_id=i.server_id AND b.mission_id=i.mission_id) b ON true
+            LEFT JOIN LATERAL (SELECT min(started_at) AS started_at,min(world) AS world FROM gc.mission_batches b WHERE b.server_id=i.server_id AND b.mission_id=i.mission_id) b ON true
             LEFT JOIN gc.catalog_missions m ON m.id=s.catalog_id AND m.listed
-            ORDER BY started DESC NULLS LAST,i.server_id,i.mission_id LIMIT 51 OFFSET $3
+            LEFT JOIN LATERAL (
+                SELECT CASE WHEN count(DISTINCT entry->>'Name')=1 THEN min(entry->>'Name') END AS name
+                FROM jsonb_array_elements($6::jsonb) entry
+                WHERE right(lower(replace(coalesce(s.metadata->>'world',m.metadata->'data'->>'world',b.world,''),chr(92),'/')),length(entry->>'WorldSuffix'))=lower(replace(entry->>'WorldSuffix',chr(92),'/'))
+            ) map_identity ON true
+            WHERE ($4='' OR strpos(lower(coalesce(m.name,s.metadata->>'missionName','') || ' ' || coalesce(map_identity.name,nullif(m.metadata->'data'->>'map',''),'') || ' ' || coalesce(s.metadata->>'outcome','')),lower($4))>0)
+                AND ($5::uuid IS NULL OR EXISTS (
+                    SELECT 1 FROM gc.mission_players p
+                    JOIN gc.verified_game_identities g ON g.identity::text=p.identity
+                    JOIN gc.external_identities e ON e.provider='steam' AND e.subject=g.steam_id
+                    WHERE p.server_id=i.server_id AND p.mission_id=i.mission_id AND e.user_id=$5))
+            ORDER BY {order} {(ascending ? "ASC" : "DESC")} NULLS LAST,i.server_id,i.mission_id LIMIT 51 OFFSET $3
             """);
         q.Parameters.AddWithValue(NpgsqlDbType.Uuid,(object?)catalog??DBNull.Value);q.Parameters.AddWithValue(NpgsqlDbType.Uuid,(object?)server??DBNull.Value);q.Parameters.AddWithValue(offset);
+        q.Parameters.AddWithValue(search);q.Parameters.AddWithValue(NpgsqlDbType.Uuid,(object?)user??DBNull.Value);
+        q.Parameters.AddWithValue(NpgsqlDbType.Jsonb,JsonSerializer.Serialize(maps??[]));
         var rows=new List<object>();await using var r=await q.ExecuteReaderAsync(ct);
         while(await r.ReadAsync(ct)) {
             if(rows.Count==50)return new {sessions=rows,nextOffset=(int?)(offset+50)};
             rows.Add(new{serverId=r.GetGuid(0),missionId=r.GetGuid(1),startedAt=r.IsDBNull(2)?(long?)null:r.GetInt64(2),metadata=r.IsDBNull(3)?(JsonElement?)null:JsonSerializer.Deserialize<JsonElement>(r.GetString(3)),linkStatus=r.GetString(4),recordingIds=r.GetFieldValue<Guid[]>(5),
-                catalogId=r.IsDBNull(6)?(Guid?)null:r.GetGuid(6),missionName=r.IsDBNull(7)?null:r.GetString(7)});
+                catalogId=r.IsDBNull(6)?(Guid?)null:r.GetGuid(6),missionName=r.IsDBNull(7)?null:r.GetString(7),map=r.IsDBNull(8)?null:r.GetString(8)});
         }
         return new{sessions=rows,nextOffset=(int?)null};
     }
