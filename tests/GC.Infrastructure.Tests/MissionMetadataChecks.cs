@@ -103,6 +103,39 @@ internal static class MissionMetadataChecks
             """;
         var detected=Parse(extra:"{\"mods\":[\"Former tag\"]}",generated:addonSnapshot);
         Check(detected.Metadata.GetProperty("mods").EnumerateArray().Select(x=>x.GetString()).SequenceEqual(new[]{"Used mod"}) && detected.Tags.Contains("Used mod") && !detected.Tags.Contains("Former tag"),"Only referenced non-vanilla mods appear in mission details and search");
+        var nested = Generated.Replace("m_iSchemaVersion 1", "m_iSchemaVersion 2") + "\n" + """
+            m_sResourceCoverage "authored_container_graph_partial"
+            m_iUnexpandedResourceCount 3
+            m_iOmittedVanillaResourceCount 4
+            m_aReferencedAddonIds { "NestedMod" }
+            m_aLoadedAddons {
+             GC_MissionMetadataAddon {
+              m_sId "NestedMod"
+              m_sGuid "1234567890ABCDEF"
+              m_sTitle "Nested equipment"
+              m_bReferencedByResource 1
+             }
+             GC_MissionMetadataAddon {
+              m_sId "Unused"
+              m_sGuid "ABCDEF1234567890"
+              m_sTitle "Unrelated loaded mod"
+             }
+            }
+            m_aResourceReferences {
+             GC_MissionMetadataResource {
+              m_sResource "{1234567890ABCDEF}Prefabs/Compass.et"
+              m_sOrigin "entity:Unit/Inventory.Prefabs[0]"
+              m_sStatus "container"
+              m_aAddonIds { "NestedMod" }
+             }
+            }
+            """;
+        var nestedMission = Parse(generated:nested).Metadata;
+        Check(nestedMission.GetProperty("requiredAddonIds").EnumerateArray().Select(x=>x.GetString()).Order().SequenceEqual(new[]{"1234567890ABCDEF","6A115D5DFF7ED870"}), "Nested GUID requirements union with declared requirements; unrelated loaded addons excluded");
+        Check(nestedMission.GetProperty("mods")[0].GetString()=="Nested equipment" && nestedMission.GetProperty("generated").GetProperty("resourceReferences").GetArrayLength()==1, "Nested-only mod label and partial resource evidence survive website intake");
+        Reject(()=>Parse(generated:nested.Replace("m_sId \"NestedMod\"", "m_sId \"Changed\"")), "Unmapped referenced addon rejected");
+        Reject(()=>Parse(generated:nested.Replace("m_sGuid \"1234567890ABCDEF\"", "m_sGuid \"not-a-guid\"")), "Invalid addon GUID rejected");
+        Reject(()=>Parse(generated:nested.Replace("m_iUnexpandedResourceCount 3", "m_iUnexpandedResourceCount -1")), "Invalid partial-coverage count rejected");
         var slots=Generated+"\n"+"""
             m_aPlayerSlots {
              GC_MissionMetadataSlot "{1234567890123456}" {

@@ -4,7 +4,7 @@ using NpgsqlTypes;
 
 namespace GC.Infrastructure;
 
-/// <summary>Server-only admin catalogue and durable requests. Execution belongs to a future worker.</summary>
+/// <summary>Server-only admin catalogue and durable requests consumed by the dedicated launch worker.</summary>
 public static class MissionSelection
 {
     public sealed record Query(string Search, int Offset);
@@ -88,8 +88,8 @@ public static class MissionSelection
                 return Envelope(new { status = previous.GetString(3), requestId = request.RequestId });
             }
         }
-        string scenario, metadata;
-        await using (var mission = new NpgsqlCommand("SELECT scenario_guid,scenario_path,metadata->'data' FROM gc.catalog_missions WHERE id=$1 AND available FOR SHARE", connection, transaction))
+        string scenario, metadata, repository, sourceHash;
+        await using (var mission = new NpgsqlCommand("SELECT scenario_guid,scenario_path,metadata->'data',repository,source_hash FROM gc.catalog_missions WHERE id=$1 AND available FOR SHARE", connection, transaction))
         {
             mission.Parameters.AddWithValue(request.MissionId);
             await using var reader = await mission.ExecuteReaderAsync(ct);
@@ -98,6 +98,7 @@ public static class MissionSelection
             if (guid.Length != 16 || !guid.All(Uri.IsHexDigit) || !path.EndsWith(".conf", StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("Mission has no valid scenario");
             scenario = "{" + guid + "}" + path; metadata = reader.GetString(2);
+            repository = reader.GetString(3); sourceHash = reader.GetString(4);
         }
         using var parsed = JsonDocument.Parse(metadata);
         if (parsed.RootElement.TryGetProperty("missionType", out var type) && type.GetString() == "BROKEN")
@@ -108,8 +109,9 @@ public static class MissionSelection
             throw new ArgumentException("Invalid addon metadata");
         var manifest = JsonSerializer.Serialize(new {
             scenario, requiredAddonIds = addons.Select(x => x.ToUpperInvariant()).Distinct().ToArray(),
-            dependencyResolution = "declared-only", metadata = parsed.RootElement,
-            execution = "pending-future-restart-worker"
+            dependencyResolution = parsed.RootElement.TryGetProperty("generated", out var generated) && generated.TryGetProperty("resourceCoverage", out var coverage)
+                ? coverage.GetString() : "declared-only", metadata = parsed.RootElement,
+            source = new { repository, sourceHash }, execution = "pending-worker"
         });
         await using (var cancel = new NpgsqlCommand("UPDATE gc.mission_launch_requests SET status='cancelled' WHERE server_id=$1 AND status='queued'", connection, transaction))
         { cancel.Parameters.AddWithValue(server); await cancel.ExecuteNonQueryAsync(ct); }

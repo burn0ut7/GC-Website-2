@@ -13,7 +13,7 @@ public sealed record CatalogSource(string Repository, string Branch);
 /// <summary>Commit-pinned snapshots. A failed/incomplete fetch never removes catalogue entries.</summary>
 public sealed class CatalogSync(HttpClient http)
 {
-    private const int ParserVersion=12;
+    private const int ParserVersion=13;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public async Task Sync(NpgsqlDataSource db,CatalogSource source,CancellationToken ct)
     {

@@ -87,6 +87,25 @@ public static class Integrations
             try { return Results.Ok(await MissionSelection.Queue(context.RequestServices.GetRequiredService<NpgsqlDataSource>(), server, request, ct)); }
             catch (InvalidOperationException) { return Results.Conflict(new { error = "request_conflict" }); }
         });
+        catalog.MapPost("/launch-worker/claim", async (HttpContext context, MissionLaunchQueue.Claim request, CancellationToken ct) =>
+        {
+            try
+            {
+                var assignment = await MissionLaunchQueue.Take(context.RequestServices.GetRequiredService<NpgsqlDataSource>(), server, request, ct);
+                return assignment is null ? Results.NoContent() : Results.Ok(assignment);
+            }
+            catch (InvalidOperationException) { return Results.Conflict(new { error = "launch_already_claimed" }); }
+            catch (ArgumentException) { return Results.BadRequest(new { error = "invalid_claim" }); }
+        });
+        catalog.MapPost("/launch-worker/{id:guid}/result", async (HttpContext context, Guid id, MissionLaunchQueue.Completion result, CancellationToken ct) =>
+        {
+            try
+            {
+                return await MissionLaunchQueue.Finish(context.RequestServices.GetRequiredService<NpgsqlDataSource>(), server, id, result, ct)
+                    ? Results.Ok(new { status = result.Status }) : Results.Conflict(new { error = "claim_or_outcome_conflict" });
+            }
+            catch (ArgumentException) { return Results.BadRequest(new { error = "invalid_outcome" }); }
+        });
         // Proof APIs use the same server-scoped machine credential, not blanket member access.
         app.MapGet("/api/v1/recordings/{recording:guid}", async (HttpContext context, Guid recording) =>
         {

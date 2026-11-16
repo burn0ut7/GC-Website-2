@@ -41,6 +41,24 @@ internal static class MissionSelectionChecks
         try { await MissionSelection.Queue(db, server, request with { RequestId = Guid.NewGuid() }, default); throw new Exception("Unavailable launch accepted"); } catch (ArgumentException) { }
         await using (var show = db.CreateCommand("UPDATE gc.catalog_missions SET available=true WHERE id=$1"))
         { show.Parameters.AddWithValue(mission); await show.ExecuteNonQueryAsync(); }
+        var claim = new MissionLaunchQueue.Claim(Guid.NewGuid());
+        var assignment = JsonSerializer.SerializeToNode(await MissionLaunchQueue.Take(db, server, claim, default))!;
+        Check(assignment["requestId"]!.GetValue<Guid>() == replacement.RequestId, "Worker claims the current queued request");
+        var replay = JsonSerializer.SerializeToNode(await MissionLaunchQueue.Take(db, server, claim, default))!;
+        Check(replay["requestId"]!.GetValue<Guid>() == replacement.RequestId, "Lost claim response returns the same assignment");
+        try { await MissionLaunchQueue.Take(db, server, new(Guid.NewGuid()), default); throw new Exception("Concurrent claim accepted"); } catch (InvalidOperationException) { }
+        var following = request with { RequestId = Guid.NewGuid() };
+        await MissionSelection.Queue(db, server, following, default);
+        Check(Unwrap(await MissionSelection.Queue(db, server, replacement, default))["status"]!.GetValue<string>() == "running", "New selection does not cancel a claimed launch");
+        var result = new MissionLaunchQueue.Completion(claim.ClaimId, "completed", "Verified scenario and mods", new string('a',64), 1234);
+        Check(!await MissionLaunchQueue.Finish(db, Guid.NewGuid(), replacement.RequestId, result, default), "Cross-server completion rejected");
+        Check(!await MissionLaunchQueue.Finish(db, server, replacement.RequestId, result with { ClaimId = Guid.NewGuid() }, default), "Wrong claim completion rejected");
+        Check(await MissionLaunchQueue.Finish(db, server, replacement.RequestId, result, default) && await MissionLaunchQueue.Finish(db, server, replacement.RequestId, result, default), "Completion retries are idempotent");
+        Check(!await MissionLaunchQueue.Finish(db, server, replacement.RequestId, result with { Status = "failed" }, default), "Terminal outcome cannot be rewritten");
+        var terminal = JsonSerializer.SerializeToNode(await MissionLaunchQueue.Take(db, server, claim, default))!;
+        Check(terminal["status"]!.GetValue<string>() == "completed", "Recovered old claim cannot start a new request");
+        var next = JsonSerializer.SerializeToNode(await MissionLaunchQueue.Take(db, server, new(Guid.NewGuid()), default))!;
+        Check(next["requestId"]!.GetValue<Guid>() == following.RequestId, "Fresh claim advances after completion");
         await RuntimeRole(db, mission);
     }
 

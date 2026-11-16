@@ -3,6 +3,7 @@ using Npgsql;
 using System.Diagnostics;
 
 if (args.Length == 3 && args[0] == "--voting-live") { await VotingLive.Run(args[1],args[2]); return; }
+if (args.Length == 3 && args[0] == "--launch-live") { await LaunchLive.Run(args[1],args[2]); return; }
 
 if (args.Contains("--mission-metadata")) { MissionMetadataChecks.Run(); return; }
 if (Array.IndexOf(args,"--mission-source") is var sourceAt && sourceAt>=0)

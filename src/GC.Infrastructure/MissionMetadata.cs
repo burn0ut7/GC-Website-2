@@ -209,9 +209,23 @@ public static class MissionMetadata
         foreach (var row in Rows(source, "m_aLoadedAddons", "GC_MissionMetadataAddon"))
             addons.Add(new JsonObject {
                 ["id"] = row.Text("m_sId"), ["guid"] = row.Text("m_sGuid"), ["title"] = row.Text("m_sTitle"),
-                ["vanilla"] = Flag(row, "m_bVanilla"), ["referencedByPlacedPrefab"] = Flag(row, "m_bReferencedByPlacedPrefab")
+                ["vanilla"] = Flag(row, "m_bVanilla"), ["referencedByPlacedPrefab"] = Flag(row, "m_bReferencedByPlacedPrefab"),
+                ["referencedByResource"] = Flag(row, "m_bReferencedByResource")
             });
         result["loadedAddons"] = addons;
+        if (Integer(source, "m_iSchemaVersion", 1) == 2)
+        {
+            result["resourceCoverage"] = source.Text("m_sResourceCoverage");
+            result["unexpandedResourceCount"] = Integer(source, "m_iUnexpandedResourceCount");
+            result["omittedVanillaResourceCount"] = Integer(source, "m_iOmittedVanillaResourceCount");
+            var references = new JsonArray();
+            foreach (var row in Rows(source, "m_aResourceReferences", "GC_MissionMetadataResource"))
+                references.Add(new JsonObject {
+                    ["resource"] = row.Text("m_sResource"), ["origin"] = row.Text("m_sOrigin"),
+                    ["status"] = row.Text("m_sStatus"), ["addonIds"] = JsonSerializer.SerializeToNode(row.Array("m_aAddonIds"))
+                });
+            result["resourceReferences"] = references;
+        }
         var hours = source.Array("m_aStartHours");
         if (hours.Length > 0) result["startHours"] = JsonSerializer.SerializeToNode(hours.Select(h =>
             int.TryParse(h, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : throw new InvalidDataException("Invalid start hour")));
@@ -246,17 +260,27 @@ public static class MissionMetadata
             metadata["startTime"] = periods.Length == 1 ? periods[0] : "Variable";
         }
         metadata["generated"] = snapshot;
+        if (snapshot["schemaVersion"]!.GetValue<int>() == 2)
+        {
+            var requirements = metadata["requiredAddonIds"]!.AsArray().Select(x => x!.GetValue<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var referenced = snapshot["referencedAddonIds"]!.AsArray().Select(x => x!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+            foreach (var addon in snapshot["loadedAddons"]!.AsArray())
+                if (referenced.Contains(addon!["id"]!.GetValue<string>()) && !addon["vanilla"]!.GetValue<bool>())
+                    requirements.Add(addon["guid"]!.GetValue<string>().ToUpperInvariant());
+            metadata["requiredAddonIds"] = JsonSerializer.SerializeToNode(requirements.Order(StringComparer.Ordinal));
+        }
         if (snapshot["loadedAddons"] is not JsonArray addons) return;
         var mods = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var addon in addons)
         {
-            if (addon is not JsonObject row || row["referencedByPlacedPrefab"] is not JsonValue used ||
-                !used.TryGetValue<bool>(out var referenced) || !referenced ||
+            if (addon is not JsonObject row || !(IsTrue(row["referencedByPlacedPrefab"]) || IsTrue(row["referencedByResource"])) ||
                 row["vanilla"] is not JsonValue stock || !stock.TryGetValue<bool>(out var vanilla) || vanilla) continue;
             var label = ModLabel(row["title"]) ?? ModLabel(row["id"]);
             if (label is not null) mods.Add(label);
         }
         metadata["mods"] = JsonSerializer.SerializeToNode(mods);
+
+        static bool IsTrue(JsonNode? node) => node is JsonValue value && value.TryGetValue<bool>(out var flag) && flag;
 
         static string? ModLabel(JsonNode? field)
         {
@@ -269,7 +293,7 @@ public static class MissionMetadata
     internal static JsonObject Generated(string json, string world)
     {
         using var doc = JsonDocument.Parse(json); var root = doc.RootElement;
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("schemaVersion", out var schema) || schema.ValueKind != JsonValueKind.Number || !schema.TryGetInt32(out var version) || version != 1 ||
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("schemaVersion", out var schema) || schema.ValueKind != JsonValueKind.Number || !schema.TryGetInt32(out var version) || version is not (1 or 2) ||
             !root.TryGetProperty("world", out var source) || source.ValueKind != JsonValueKind.String || WorldPath(source.GetString()!) != WorldPath(world)) throw new InvalidDataException("Generated metadata identity/version mismatch");
         var sourceGuid = Regex.Match(source.GetString()!, @"^\{([0-9A-Fa-f]{16})\}");
         var worldGuid = Regex.Match(world, @"^\{([0-9A-Fa-f]{16})\}");
@@ -280,6 +304,7 @@ public static class MissionMetadata
         if (root.TryGetProperty("assets", out var assets) && (assets.ValueKind != JsonValueKind.Object || assets.EnumerateObject().Count() > 64 || assets.EnumerateObject().Any(a => a.Name.Length > 80 || a.Value.ValueKind != JsonValueKind.Number || !a.Value.TryGetInt32(out var count) || count < 0))) throw new InvalidDataException("Invalid detected assets");
         if (root.TryGetProperty("entityCount", out var entities) && (entities.ValueKind != JsonValueKind.Number || !entities.TryGetInt32(out var count) || count < 0)) throw new InvalidDataException("Invalid entity count");
         if (root.TryGetProperty("loadedAddons", out var addons) && (addons.ValueKind != JsonValueKind.Array || addons.GetArrayLength() > 512)) throw new InvalidDataException("Invalid loaded addons");
+        if (version == 2) MissionDependencyEvidence.Validate(root);
         if (root.TryGetProperty("playerSlots", out var slots))
         {
             if (slots.ValueKind != JsonValueKind.Array || slots.GetArrayLength() > 10000) throw new InvalidDataException("Invalid player slots");
@@ -302,7 +327,7 @@ public static class MissionMetadata
             result["randomStartTime"] = random.ValueKind == JsonValueKind.True && !result.ContainsKey("startHours") ? true : throw new InvalidDataException("Invalid random start time");
         if (root.TryGetProperty("allowHeaderTime", out var allow))
             result["allowHeaderTime"] = allow.ValueKind is JsonValueKind.True or JsonValueKind.False ? allow.GetBoolean() : throw new InvalidDataException("Invalid scenario time flag");
-        foreach (var key in new[] { "schemaVersion", "world", "scope", "limitations", "entityCount", "factions", "configuredFactions", "referencedAddonIds", "assets", "loadedAddons", "playerSlots" })
+        foreach (var key in new[] { "schemaVersion", "world", "scope", "limitations", "entityCount", "factions", "configuredFactions", "referencedAddonIds", "assets", "loadedAddons", "playerSlots", "resourceCoverage", "unexpandedResourceCount", "omittedVanillaResourceCount", "resourceReferences" })
             if (root.TryGetProperty(key, out var value)) result[key] = JsonNode.Parse(value.GetRawText());
         // Never use these counts as author-confirmed assets, player slots, or complete dependencies.
         return result;
